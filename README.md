@@ -2,6 +2,11 @@
 
 Last Updated: 10/13/2021
 
+## Disclaimer
+
+This is not an official PacBio GitHub repo. The scripts here are being actively developed. Use at your own risk.
+
+
 ## Pre-requisites
 
 * Python 3.7
