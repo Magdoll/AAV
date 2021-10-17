@@ -13,6 +13,7 @@ x.summary <- read.table(paste0(input.prefix, '.summary.csv'),sep='\t',header=T)
 x.err <- read.table(paste0(input.prefix, '.nonmatch_stat.csv'),sep='\t',header=T)
 x.read <- read.table(paste0(input.prefix, '.per_read.csv'),sep='\t',header=T)
 
+total_num_reads <- dim(x.read)[1]
 
 total_err <- dim(x.err)[1]
 x.err$pos0_div <- (x.err$pos0%/%10 * 10)
@@ -23,6 +24,13 @@ x.err[x.err$type_len>100, "type_len_cat"] <- "100-500"
 x.err[x.err$type_len>500, "type_len_cat"] <- ">500"
 x.err$type_len_cat <- ordered(x.err$type_len_cat, levels=c('1-10', '11-100', '100-500', '>500'))
 df.err_len_cat <- x.err %>% group_by(type, type_len_cat) %>% summarise(count=n()) %>% mutate(freq=round(100*count/total_err, 2))
+
+df.read_stat_N <- filter(x.err,type=='N') %>% group_by(read_id) %>% summarise(max_del_size=max(type_len))
+num_reads_large_del <- sum(df.read_stat_N$max_del_size>100)
+freq_reads_large_del <- round(num_reads_large_del*100/total_num_reads, 2)
+df.read_stat_N_summary <- data.frame(category=c("Total Reads", "Reads with dels >100bp"),
+                           value=c(total_num_reads, paste0(sum(df.read_stat_N$max_del_size>100), " (", freq_reads_large_del, "%)")))
+
 
 
 min_r_start <- min((x.summary$map_start0%/%100) * 100, na.rm=T)
@@ -87,6 +95,17 @@ p2.atype_violin <- ggplot(x.read, aes(x=assigned_type, y=read_len)) + geom_violi
                     labs(title="Distribution of Read Lengths by Assigned AAV Type")
 
 
+p3.err_Ns <- ggplot(filter(df.err,type=='N'), aes(x=pos0_div, y=count)) + geom_bar(fill='orange', stat='identity') +
+              xlim(c(min_r_start, max_r_end)) +
+              labs(title="Distribution of large deletion events (cigar 'N'), by position",
+                   subtitle="Higher bars indicate hot spots for large deletions w.r.t reference") +
+               xlab("Reference Position") + ylab("Frequency")
+
+p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(binwidth=100) +
+                xlab("Maximum large deletion (cigar 'N') size") + ylab("Number of Reads") +
+                labs(title="Distribution of biggest deletion for reads that have 'N' in cigar string")
+
+
   pdf(file=pdf.report.file, width = 6.5, height = 6.5)
 
   #cover
@@ -104,6 +123,11 @@ p2.atype_violin <- ggplot(x.read, aes(x=assigned_type, y=read_len)) + geom_violi
     title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
     gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
     grid.arrange(gt.err_len_cat)
+
+  table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Category", "Count"))
+  #title.err_Ns_summary <- textGrob("Reads with large deletions (cigar 'N')", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
+  #gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
+  grid.arrange(p3.err_Ns, p3.err_size_Ns, table.err_Ns_summary, ncol=1)
 
     table.atype <- tableGrob(df.read, rows = NULL, cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"))
     title.atype <- textGrob("Assigned AAV Types By Read Alignment Characteristics", gp=gpar(fontface="italic", fontsize=15), vjust=-18)

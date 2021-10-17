@@ -43,13 +43,10 @@ def iter_cigar(rec):
     if CIGAR_DICT[cigar_list[0][0]] == 'H': cigar_list = cigar_list[1:]
     if CIGAR_DICT[cigar_list[-1][0]] == 'H': cigar_list = cigar_list[:-1]
 
-    warning_printed = False
+    #warning_printed = False
     for _type, _count in cigar_list:
         x = CIGAR_DICT[_type]
         if x in ('M', '=', 'X', 'I', 'D', 'S', 'N'):
-            if x == 'N' and not warning_printed:
-                warning_printed = True    
-                print("WARNING: sees 'N' in cigarstring. Currently will just ignore the splicing event.")
             for i in range(_count): yield x, _count
         else:
             raise Exception("Unexpected cigar {0}{1} seen! Abort!".format(_count, x))
@@ -67,7 +64,7 @@ def iter_cigar_w_aligned_pair(rec, writer):
             continue
         total_len += cigar_count
         if cigar_type != prev_cigar_type:
-            if cigar_type in ('I', 'D', 'X'):
+            if cigar_type in ('I', 'D', 'X', 'N'):
                 total_err += cigar_count
                 info = {'read_id': rec.qname,
                         'pos0': r_pos if cigar_type!='I' else prev_r_pos,
