@@ -1,6 +1,6 @@
 # AAV
 
-Last Updated: 10/13/2021
+Last Updated: 10/17/2021
 
 ## Disclaimer
 
@@ -43,7 +43,15 @@ conda install -c r gridExtra
 
 ### Option2: Use Conda with yml
 
+Suppose you have [anaconda](https://docs.anaconda.com/anaconda/install/linux/) installed and the binary is in `$HOME/anaCogentPy37/bin`. You would add the binary to $PATH and create a new conda environment called `AAV.env`.
 
+```
+$ export PATH=$HOME/anaCogentPy37/bin:$PATH
+$ conda env create -f AAV.conda_env.yml
+$ source activate AAV.env
+```
+
+At this point the prompt should change to `(AAV.env) $`
 
 ## Usage
 
