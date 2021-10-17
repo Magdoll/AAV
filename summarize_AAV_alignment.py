@@ -45,10 +45,10 @@ def iter_cigar(rec):
 
     for _type, _count in cigar_list:
         x = CIGAR_DICT[_type]
-        if x in ('M', '=', 'X', 'I', 'D', 'S'):
+        if x in ('M', '=', 'X', 'I', 'D', 'S', 'N'):
             for i in range(_count): yield x, _count
         else:
-            raise Exception("Unexpected cigar {0}{1} seen! Abort!".format(_count, _type))
+            raise Exception("Unexpected cigar {0}{1} seen! Abort!".format(_count, x))
 
 def iter_cigar_w_aligned_pair(rec, writer):
     ii = iter_cigar(rec)
