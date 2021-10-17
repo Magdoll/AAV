@@ -1,0 +1,17 @@
+name: AAV.env
+channels:
+    - conda-forge
+    - bioconda
+    - anaconda
+    - r
+    - defaults
+dependencies:
+    - python>=3.7.6
+    - r>=3.6.0
+    - minimap2
+    - biopython
+    - pysam
+    - r-dplyr
+    - r-ggplot2
+    - r-gridbase
+    - r-gridextra
