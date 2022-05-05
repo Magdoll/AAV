@@ -46,16 +46,18 @@ p1.map_iden <- ggplot(x.summary, aes(map_iden*100)) + geom_histogram(fill='black
                labs(title="Distribution of Mapped Identity to Reference")
 
 
-p1.err_dot <- ggplot(x.err, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
+ERR_SAMPLE_SIZE <- 50000
+x.err2 <- x.err[sample(1:dim(x.err)[1], ERR_SAMPLE_SIZE),]
+p1.err_dot <- ggplot(x.err2, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(min_r_start, max_r_end)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches", subtitle="Each point is a non-match from a read")
+               labs(title="Distribution of Non-Matches", subtitle="Each point is a non-match from a read, only 50k points at most")
 
-p1.err_dot_close <- ggplot(x.err, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
+p1.err_dot_close <- ggplot(x.err2, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(min_r_start, max_r_end)) +
                ylim(c(0, 100)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches (of sizes <100 only)", subtitle="Each point is a non-match from a read")
+               labs(title="Distribution of Non-Matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
 
 p1.err_sub <- ggplot(filter(df.err,type=='X'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkgreen', stat='identity') +
               xlim(c(min_r_start, max_r_end)) +
