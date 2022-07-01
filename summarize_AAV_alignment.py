@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys
+import os, sys, re, pdb
 import random
 from csv import DictReader, DictWriter
 from collections import defaultdict
@@ -20,10 +20,13 @@ SUMMARY_FIELDS = ['read_id',
                   'read_len',
                   'is_mapped',
                   'is_supp',
+                  'map_name',
                   'map_start0',
                   'map_end1',
                   'map_len',
-                  'map_iden']
+                  'map_iden',
+                  'map_type',
+                  'map_subtype']
 
 PER_READ_FIELDS = ['read_id',
                    'read_len',
@@ -36,6 +39,28 @@ NONMATCH_FIELDS = ['read_id',
                    'pos0',
                    'type',
                    'type_len']
+
+annot_rex = re.compile('NAME=(\S+);TYPE=([a-zA-Z]+);(REGION=\d+\-\d+){0,1}')
+ANNOT_TYPE_PRIORITIES = {'vector': 1, 'repcap': 2, 'helper': 3, 'lambda':4, 'host': 5}
+
+MAX_DIFF_W_REF = 100
+TARGET_GAP_THRESHOLD = 200 # skipping through the on-target region for more than this is considered "full-gap"
+DEBUG_GLOBAL_FLAG = False
+
+def subset_sam_by_readname_list(in_sam, out_sam, per_read_csv, wanted_types, wanted_subtypes):
+    qname_list = []
+    for r in DictReader(open(per_read_csv), delimiter='\t'):
+        if r['assigned_type'] in wanted_types and r['assigned_subtype'] in wanted_subtypes:
+            qname_list.append(r['read_id'])
+
+    reader = pysam.AlignmentFile(in_sam, 'r', check_sq=False)
+    writer = pysam.AlignmentFile(out_sam, 'w', header=reader.header)
+    for r in reader:
+        if r.qname in qname_list:
+            writer.write(r)
+    reader.close()
+    writer.close()
+
 
 def iter_cigar(rec):
     # first we exclude cigar front/end that is hard-clipped (due to supp alignment)
@@ -75,53 +100,101 @@ def iter_cigar_w_aligned_pair(rec, writer):
         if r_pos is not None: prev_r_pos = r_pos
     return total_err, total_len
 
-MAX_DIFF_W_REF = 100
-def assign_read_type(read_dict, valid_ref_start, valid_ref_end):
+def read_annotation_file(annot_filename):
+    """
+    example
+    NAME=chr1;TYPE=host;
+    NAME=chr2;TYPE=host;
+    NAME=myVector;TYPE=vector;REGION=1795-6553;
+    NAME=myCapRep;TYPE=repcap;REGION=1895-5987;
+    NAME=myHelper;TYPE=helper;
+
+    :param annot_filename: Annotation file following the format indicated above. Only "vector" is required. Others optional.
+    :return:
+    """
+    d = {}
+    for line in open(annot_filename):
+        stuff = line.strip()
+        m = annot_rex.match(stuff)
+        if m is None:
+            raise Exception("{0} is not a valid annotation line! Should follow format `NAME=xxxx;TYPE=xxxx;REGION=xxxx;`. Abort!".format(stuff))
+            sys.exit(-1)
+
+        _name = m.group(1)
+        _type= m.group(2)
+        _region = None if m.group(3) is None else tuple(map(int, m.group(3).split('=')[1].split('-')))
+        if _type in d:
+            raise Exception("Annotation file has multiple {0} types. Abort!".format(_type))
+            sys.exit(-1)
+        elif _type not in ANNOT_TYPE_PRIORITIES:
+            raise Exception("{0} is not a valid type (host, repcap, vector, helper). Abort!".format(_type))
+            sys.exit(-1)
+        else:
+            d[_name] = {'type': _type, 'region': _region}
+    return d
+
+def is_on_target(r, valid_start, valid_end):
+    """
+    Possible assign types:
+     - full (within valid_start, valid_end)
+     - backbone (outside valid_start, valid_end)
+     - 5-partial (incomplete only on the 5' end)
+     - 3-partial (incomplete only on the 3' end)
+     - partial (incomplete both on the 5' and 3' end)
+     - vector+backbone (any amount that crosses over on target and backbone)
+    """
+    if r.reference_end < valid_start or r.reference_start > valid_end:
+        return 'backbone'
+
+    diff_start = r.reference_start - valid_start
+    diff_end = valid_end - r.reference_end
+    valid_len = valid_end - valid_start # this is what a true "full length" (without large deletions) size would be
+
+    if abs(diff_start) <= MAX_DIFF_W_REF: # complete 5' start
+        if abs(diff_end) <= MAX_DIFF_W_REF: # complete 3' end
+            for cigar_type, num in iter_cigar(r):
+                if cigar_type == 'N' and num >= TARGET_GAP_THRESHOLD:
+                    #pdb.set_trace()
+                    return 'full-gap'
+            return 'full'
+        elif diff_end > MAX_DIFF_W_REF: # 3' partial
+            return '3-partial'
+        elif diff_end < -MAX_DIFF_W_REF: # into backbone
+            return 'vector+backbone'
+    elif diff_start > MAX_DIFF_W_REF: # 5' partial
+        if abs(diff_end) <= MAX_DIFF_W_REF:
+            return '5-partial'
+        elif diff_end > MAX_DIFF_W_REF:
+            return 'partial'
+        elif diff_end < -MAX_DIFF_W_REF:
+            return 'vector+backbone'
+    else: # diff < -MAX_DIFF_W_REF, into backbone
+        return 'vector+backbone'
+
+
+def assign_read_type(r, annotation):
     """
     :param read_dict: dict of {'supp', 'primary'}
     :return: assigned_type, which could be (scAAV, ssAAV, unknown) + (super, full, partial, unknown)
-    """
-    r1, r2 = read_dict['primary'], read_dict['supp']
-    subtype1, subtype2 = None, None
-    if r1 is not None:
-        diff_start = r1.reference_start - valid_ref_start
-        diff_end = r1.reference_end - valid_ref_end
-        if r1.reference_end < valid_ref_start or r1.reference_end > valid_ref_end:
-            subtype1 = 'unknown'
-        elif (diff_start < -MAX_DIFF_W_REF) or \
-                (diff_end > MAX_DIFF_W_REF):
-            subtype1 = 'super'
-        elif (diff_start > MAX_DIFF_W_REF and diff_end <= 0):
-            subtype1 = 'partial'
-        else:
-            subtype1 = 'full'
-    if r2 is not None:
-        diff_start = r2.reference_start - valid_ref_start
-        diff_end = r2.reference_end - valid_ref_end
-        if r2.reference_end < valid_ref_start or r2.reference_end > valid_ref_end:
-            subtype2 = 'unknown'
-        elif (diff_start < -MAX_DIFF_W_REF) or \
-                (diff_end > MAX_DIFF_W_REF):
-            subtype2 = 'super'
-        elif (diff_start > MAX_DIFF_W_REF and diff_end <= 0):
-            subtype2 = 'partial'
-        else:
-            subtype2 = 'full'
 
-    if subtype1 is None:
-        if subtype2 is None: return 'unknown', 'unknown'
-        else: return 'unknown', subtype2
+    <assigned_type: ssAAV, scAAV, backbone, helper, repcap, host, can use “+” sign>,
+    <assigned_subtype: full, partial, nonAAV>
+    <map_stat: unmapped | fully_aligned | partial_aligned | chimeric_aligned>,
+    <map to: comma-delimited list of [chr:start-end]>,
+    <comma-delimited list of unmapped portion, if any>,
+    """
+    _type = annotation[r.reference_name]['type']
+    if annotation[r.reference_name]['region'] is not None:
+        return _type, is_on_target(r, *annotation[r.reference_name]['region'])
     else:
-        if subtype2 is None: return 'ssAAV', subtype1
-        else: return 'scAAV', subtype1+'-'+subtype2
+        return _type, 'NA'
 
 
-def process_alignment_bam(bam_filename, output_prefix, valid_ref_start, valid_ref_end, random_frac=None, max_reads=None):
+def process_alignment_bam(sorted_sam_filename, annotation, output_prefix):
     """
-    :param bam_filename: Aligned BAM file
-    :param seq_len_dict: dict of seq id --> seq length (we need this becuz hard-clipped lengths aren't retained)
-    :param random_frac: (optional) if given a fraction of (0, 1], will subsample the reads, useful for not reading the whole file
-    :param max_reads: (optional) if given, will stop after max number of reads have been processed; can be used in conjunction w random_frac
+    :param sorted_sam_filename: Sorted (by read name) SAM filename
+    :param annotation:
+    :param output_prefix:
     """
     f1 = open(output_prefix+'.summary.csv', 'w')
     f2 = open(output_prefix+'.nonmatch_stat.csv', 'w')
@@ -135,31 +208,82 @@ def process_alignment_bam(bam_filename, output_prefix, valid_ref_start, valid_re
     writer3.writeheader()
 
     debug_count = 0
-    read_tally = defaultdict(lambda: {'primary': None, 'supp': None})
 
-    for r in pysam.AlignmentFile(bam_filename, check_sq=False):
-        if max_reads is not None and debug_count > max_reads: break
-        if random_frac is not None and random.random() > random_frac: continue
-        debug_count += 1
+    reader = pysam.AlignmentFile(sorted_sam_filename, check_sq=False)
+    bam_writer = pysam.AlignmentFile(output_prefix+'.tagged.bam', 'wb', header=reader.header)
+
+    records = [next(reader)] # records will hold all the multiple alignment records of the same read
+    while True:
+        try:
+            cur_r = next(reader)
+            if cur_r.qname != records[-1].qname:
+                process_alignment_records_for_a_read(records, annotation, writer1, writer2, writer3, bam_writer)
+                records = [cur_r]
+            else:
+                records.append(cur_r)
+        except StopIteration: # finished reading the SAM file
+            break
+
+    bam_writer.close()
+    f1.close()
+    f2.close()
+    f3.close()
+
+MIN_PRIM_SUPP_COV = 0.8 # at minimum the total of prim + main supp should cover this much of the original sequence
+def find_companion_supp_to_primary(prim, supps):
+    """
+    Return the most likely companion supp to the primary
+    :param prim: the primary info
+    :param supps: the list of supp info
+    :return: return the most likely companion supp to the primary
+    """
+    supp_should_be_rev = not prim['rec'].is_reverse
+    for supp in supps:
+        if supp['rec'].is_reverse == supp_should_be_rev:
+            min_start = min(prim['rec'].qstart, supp['rec'].qstart)
+            max_end = max(prim['rec'].qend, supp['rec'].qend)
+            if (max_end-min_start) >= prim['read_len'] * MIN_PRIM_SUPP_COV:
+                return supp
+    return None
+
+def add_assigned_types_to_record(r, a_type, a_subtype):
+    d = r.to_dict()
+    d['tags'].append('AT:Z:'+a_type)
+    d['tags'].append('AS:Z:'+a_subtype)
+    d['tags'].append('AX:Z:'+a_type+'-'+a_subtype)
+    return d
+
+def process_alignment_records_for_a_read(records, annotation, writer1, writer2, writer3, bam_writer):
+    """
+    For each, find the most probable assignment, prioritizing vector > rep/cap > helper > host
+
+    :param records: list of alignment records for the same read
+    :return:
+    """
+    read_tally = {'primary': None, 'supp': []}
+    for r in records:
         info = {'read_id': r.qname,\
                 'read_len': r.query_length,\
                 'is_mapped': 'N' if r.is_unmapped else 'Y',\
                 'is_supp': 'NA',
+                'rec': r, # we won't write this out later, it's a holder here for processing prim v supp
+                'map_name': 'NA',
                 'map_start0': 'NA',
                 'map_end1': 'NA',
                 'map_len': 'NA',
-                'map_iden': 'NA'
+                'map_iden': 'NA',
+                'map_type': 'NA',
+                'map_subtype': 'NA'
                 }
-        if not r.is_unmapped:
+        if r.is_unmapped:
+            read_tally['primary'] = info
+        else:
             cigar_list = r.cigar
             seq_len = r.query_length
             if CIGAR_DICT[cigar_list[0][0]] == 'H': seq_len += cigar_list[0][1]
             if CIGAR_DICT[cigar_list[-1][0]] == 'H': seq_len += cigar_list[-1][1]
 
-            if r.is_supplementary: read_tally[r.qname]['supp'] = r
-            else: read_tally[r.qname]['primary'] = r
-            read_tally[r.qname]['read_len'] = seq_len
-
+            info['map_name'] = r.reference_name
             info['read_len'] = seq_len
             info['is_supp'] = 'Y' if r.is_supplementary else 'N'
             info['map_start0'] = r.reference_start
@@ -167,39 +291,106 @@ def process_alignment_bam(bam_filename, output_prefix, valid_ref_start, valid_re
             info['map_len'] = r.reference_end - r.reference_start
             total_err, total_len = iter_cigar_w_aligned_pair(r, writer2)
             info['map_iden'] = 1 - total_err*1./total_len
-        writer1.writerow(info)
 
-    f1.close()
-    f2.close()
-    # now go through read tallies
-    for read_id, d in read_tally.items():
-        a_type, a_subtype = assign_read_type(d, valid_ref_start, valid_ref_end)
-        info = {'read_id': read_id,
-                'read_len': d['read_len'],
-                'has_primary': 'Y' if d['primary'] is not None else 'N',
-                'has_supp': 'Y' if d['supp'] is not None else 'N',
-                'assigned_type': a_type,
-                'assigned_subtype': a_subtype}
-        writer3.writerow(info)
-    f3.close()
+            a_type, a_subtype = assign_read_type(r, annotation)
+            info['map_type'] = a_type
+            info['map_subtype'] = a_subtype
+            if DEBUG_GLOBAL_FLAG:
+                print(r.qname, a_type, a_subtype)
+            #pdb.set_trace()
 
-    print("Processed {0} records from {1}.".format(debug_count, bam_filename))
+            if r.is_supplementary: read_tally['supp'].append(info)
+            else:
+                assert read_tally['primary'] is None
+                read_tally['primary'] = info
+        #writer1.writerow(info) # not writing here -- writing later when we rule out non-compatible subs
+
+    # summarize it per read, now that all relevant alignments have been processed
+    prim = read_tally['primary']
+    supps = read_tally['supp']
+
+    if len(supps) == 0:
+        supp = None
+    elif len(supps) == 1:
+        supp = supps[0]
+    elif len(supps) > 1: # there's multiple supp, find the companion matching supp
+        supp = find_companion_supp_to_primary(prim, supps)
+        # supp could be None, in which case there is best matching supp!
+
+    # write the assigned type / subtype to the new BAM output
+    bam_writer.write(pysam.AlignedSegment.from_dict(
+        add_assigned_types_to_record(prim['rec'], prim['map_type'], prim['map_subtype']), prim['rec'].header))
+    del prim['rec']
+    writer1.writerow(prim)
+    if supp is not None:
+        bam_writer.write(pysam.AlignedSegment.from_dict(
+            add_assigned_types_to_record(supp['rec'], supp['map_type'], supp['map_subtype']), supp['rec'].header))
+        del supp['rec']
+        writer1.writerow(supp)
+
+    sum_info = {'read_id': prim['read_id'],
+                'read_len': prim['read_len'],
+                'has_primary': prim['is_mapped'],
+                'has_supp': 'Y' if supp is not None else 'N',
+                'assigned_type': 'NA',
+                'assigned_subtype': 'NA'}
+    if sum_info['has_primary'] == 'Y':
+        if prim['map_type'] == 'vector':
+            if supp is None: # special case: primary only, maps to vector --> is ssAAV
+                sum_type = 'ssAAV'
+                sum_subtype = prim['map_subtype']
+            else:
+                if supp['map_type'] == 'vector': # special case, primary+ supp, maps to vector, --> is scAAV
+                    sum_type = 'scAAV'
+                    if supp['map_subtype']==prim['map_subtype']:
+                        sum_subtype = prim['map_subtype']
+                    else:
+                        sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
+                else:
+                    sum_type = prim['map_type'] + '|' + supp['map_type']
+                    sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
+        else:
+            if supp is None:
+                sum_type = prim['map_type']
+                sum_subtype = prim['map_subtype']
+            elif supp['map_type'] == prim['map_type']:
+                sum_type = prim['map_type']
+                if supp['map_subtype'] == prim['map_subtype']:
+                    sum_subtype = prim['map_subtype']
+                else:
+                    sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
+            else:
+                sum_type = prim['map_type'] + '|' + supp['map_type']
+                sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
+        sum_info['assigned_type'] = sum_type
+        sum_info['assigned_subtype'] = sum_subtype
+
+
+    writer3.writerow(sum_info)
+    if DEBUG_GLOBAL_FLAG:
+        print(sum_info)
+    #pdb.set_trace()
 
 
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("bam_filename", help="Aligned BAM file")
+    parser.add_argument("sam_filename", help="Sorted by read name SAM file")
+    parser.add_argument("annotation_txt", help="Annotation file")
     parser.add_argument("output_prefix", help="Output prefix")
-    parser.add_argument("--valid_ref_range", default=None, help="Expected sequencing range, ex: (60,2500). Default: off")
-    parser.add_argument("-f", "--random_frac", default=1., type=float, help="default: off. Random fraction of alignments to subsample.")
-    parser.add_argument("-m", "--max_reads", type=int, default=None, \
-                        help="default: off. Maximum number of records to process. Can use in conjunction with --random_frac")
+    parser.add_argument("--max_allowed_missing_flanking", default=100, type=int, help="Maximum allowed missing flanking bp to be still considered 'full'")
+    parser.add_argument("--debug", action="store_true", default=False)
+    #parser.add_argument("-f", "--random_frac", default=1., type=float, help="default: off. Random fraction of alignments to subsample.")
+    #parser.add_argument("-m", "--max_reads", type=int, default=None, \
+    #                    help="default: off. Maximum number of records to process. Can use in conjunction with --random_frac")
 
     args = parser.parse_args()
-    if args.valid_ref_range is None:
-        valid_ref_start, valid_ref_end = 0, 99999999
-    else:
-        valid_ref_start, valid_ref_end = eval(args.valid_ref_range)
-    process_alignment_bam(args.bam_filename, args.output_prefix, valid_ref_start, valid_ref_end, args.random_frac, args.max_reads)
+
+    if args.debug:
+        DEBUG_GLOBAL_FLAG = True
+
+    MAX_DIFF_W_REF = args.max_allowed_missing_flanking
+
+    d = read_annotation_file(args.annotation_txt)
+    process_alignment_bam(args.sam_filename, d, args.output_prefix)
