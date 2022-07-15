@@ -301,7 +301,7 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
 
             if r.is_supplementary: read_tally['supp'].append(info)
             else:
-                assert read_tally['primary'] is None
+                #assert read_tally['primary'] is None
                 read_tally['primary'] = info
         #writer1.writerow(info) # not writing here -- writing later when we rule out non-compatible subs
 
