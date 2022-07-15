@@ -40,7 +40,7 @@ for (i in 1:dim(annot)[1]) {
 
 
 x.all.summary <- read.table(paste0(input.prefix, '.summary.csv'),sep='\t',header=T)
-x.all.err <- read.table(paste0(input.prefix, '.nonmatch_stat.csv.gz'),sep='\t',header=T)
+x.all.err <- read.table(paste0(input.prefix, '.nonmatch_stat.csv'),sep='\t',header=T)
 x.all.read <- read.table(paste0(input.prefix, '.per_read.csv'),sep='\t',header=T)
 
 x.all.err[x.all.err$type=='D',"type"] <- 'deletion'
