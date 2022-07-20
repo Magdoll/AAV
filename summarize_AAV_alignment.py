@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-import os, sys, re, pdb
+import os, sys, re, pdb, shutil
+import gzip
 import random
 from csv import DictReader, DictWriter
 from collections import defaultdict
 import pysam
+from multiprocessing import Process
 
 CIGAR_DICT = {0: 'M',
               1: 'I',
@@ -48,15 +50,16 @@ TARGET_GAP_THRESHOLD = 200 # skipping through the on-target region for more than
 DEBUG_GLOBAL_FLAG = False
 
 def subset_sam_by_readname_list(in_sam, out_sam, per_read_csv, wanted_types, wanted_subtypes):
-    qname_list = []
+    qname_list = {} # qname --> (a_type, a_subtype)
     for r in DictReader(open(per_read_csv), delimiter='\t'):
-        if r['assigned_type'] in wanted_types and r['assigned_subtype'] in wanted_subtypes:
-            qname_list.append(r['read_id'])
+        if (wanted_types is None or r['assigned_type'] in wanted_types) and (wanted_subtypes is None or r['assigned_subtype'] in wanted_subtypes):
+            qname_list[r['read_id']] = (r['assigned_type'], r['assigned_subtype'])
 
     reader = pysam.AlignmentFile(in_sam, 'r', check_sq=False)
     writer = pysam.AlignmentFile(out_sam, 'w', header=reader.header)
     for r in reader:
         if r.qname in qname_list:
+            add_assigned_types_to_record(r, *qname_list[r.qname])
             writer.write(r)
     reader.close()
     writer.close()
@@ -190,7 +193,7 @@ def assign_read_type(r, annotation):
         return _type, 'NA'
 
 
-def process_alignment_bam(sorted_sam_filename, annotation, output_prefix):
+def process_alignment_bam(sorted_sam_filename, annotation, output_prefix, starting_readname=None, ending_readname=None):
     """
     :param sorted_sam_filename: Sorted (by read name) SAM filename
     :param annotation:
@@ -212,10 +215,24 @@ def process_alignment_bam(sorted_sam_filename, annotation, output_prefix):
     reader = pysam.AlignmentFile(sorted_sam_filename, check_sq=False)
     bam_writer = pysam.AlignmentFile(output_prefix+'.tagged.bam', 'wb', header=reader.header)
 
-    records = [next(reader)] # records will hold all the multiple alignment records of the same read
+    if starting_readname is not None:
+        # progress forward until we get to the read
+        while True:
+            try:
+                cur_r = next(reader)
+                if cur_r.qname == starting_readname:
+                    records = [cur_r]
+                    break
+            except StopIteration:
+                break
+    else:
+        records = [next(reader)] # records will hold all the multiple alignment records of the same read
+
     while True:
         try:
             cur_r = next(reader)
+            if ending_readname is not None and cur_r.qname == ending_readname:
+                break
             if cur_r.qname != records[-1].qname:
                 process_alignment_records_for_a_read(records, annotation, writer1, writer2, writer3, bam_writer)
                 records = [cur_r]
@@ -224,6 +241,7 @@ def process_alignment_bam(sorted_sam_filename, annotation, output_prefix):
         except StopIteration: # finished reading the SAM file
             break
 
+    process_alignment_records_for_a_read(records, annotation, writer1, writer2, writer3, bam_writer)
     bam_writer.close()
     f1.close()
     f2.close()
@@ -237,14 +255,41 @@ def find_companion_supp_to_primary(prim, supps):
     :param supps: the list of supp info
     :return: return the most likely companion supp to the primary
     """
+    def get_true_start_end(rec, true_qlen):
+        # first we need to look at the strand
+        # then also look at clipping
+        cigartype, cigarlen = rec.cigartuples[0]
+        offset = cigarlen if CIGAR_DICT[cigartype] == 'H' else 0
+        if rec.is_reverse: # on - strand
+            # we need to know the true length
+            return true_qlen-(rec.qend+offset), true_qlen-(rec.qstart+offset)
+        else: # on + strand
+            # just need to look at clipping
+            return rec.qstart+offset, rec.qend+offset
+
+    #if prim['rec'].qname=='m64011_220616_211638/9503552/ccsfwd':
+    #pdb.set_trace()
     supp_should_be_rev = not prim['rec'].is_reverse
+    # first look for a +/- supp
     for supp in supps:
         if supp['rec'].is_reverse == supp_should_be_rev:
-            min_start = min(prim['rec'].qstart, supp['rec'].qstart)
-            max_end = max(prim['rec'].qend, supp['rec'].qend)
+            prim_start, prim_end = get_true_start_end(prim['rec'], prim['read_len'])
+            supp_start, supp_end = get_true_start_end(supp['rec'], supp['read_len'])
+            min_start = min(prim_start, supp_start)
+            max_end = max(prim_end, supp_end)
             if (max_end-min_start) >= prim['read_len'] * MIN_PRIM_SUPP_COV:
-                return supp
-    return None
+                return supp, '+/-'
+
+    # if that didn't work, check if there's a +/+ supp
+    for supp in supps:
+        if supp['rec'].is_reverse == prim['rec'].is_reverse:
+            prim_start, prim_end = get_true_start_end(prim['rec'], prim['read_len'])
+            supp_start, supp_end = get_true_start_end(supp['rec'], supp['read_len'])
+            min_start = min(prim_start, supp_start)
+            max_end = max(prim_end, supp_end)
+            if (max_end-min_start) >= prim['read_len'] * MIN_PRIM_SUPP_COV:
+                return supp, '+/+'
+    return None, None
 
 def add_assigned_types_to_record(r, a_type, a_subtype):
     d = r.to_dict()
@@ -311,11 +356,10 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
 
     if len(supps) == 0:
         supp = None
-    elif len(supps) == 1:
-        supp = supps[0]
-    elif len(supps) > 1: # there's multiple supp, find the companion matching supp
-        supp = find_companion_supp_to_primary(prim, supps)
+    elif len(supps) >= 1: # there's multiple supp, find the companion matching supp
+        supp, supp_orientation = find_companion_supp_to_primary(prim, supps)
         # supp could be None, in which case there is best matching supp!
+        # in the case supp is None we wanna see if this is a weird read (ex: mapped twice to + strand)
 
     # write the assigned type / subtype to the new BAM output
     bam_writer.write(pysam.AlignedSegment.from_dict(
@@ -337,19 +381,29 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
     if sum_info['has_primary'] == 'Y':
         if prim['map_type'] == 'vector':
             if supp is None: # special case: primary only, maps to vector --> is ssAAV
-                sum_type = 'ssAAV'
-                sum_subtype = prim['map_subtype']
+                # double check the special case where there was supp candidates but no companion
+                if len(supps) > 0:
+                    sum_type = 'unknown' # might be a weird case ex: a read covers the region twice as on + strand
+                    sum_subtype = prim['map_subtype']
+                else: # never had any supp candidates, def ssAAV
+                    sum_type = 'ssAAV'
+                    sum_subtype = prim['map_subtype']
             else:
-                if supp['map_type'] == 'vector': # special case, primary+ supp, maps to vector, --> is scAAV
-                    sum_type = 'scAAV'
+                if supp['map_type'] == 'vector':
+                    if supp_orientation == '+/-':
+                        # special case, primary+ supp, maps to vector, --> is scAAV
+                        sum_type = 'scAAV'
+                    else:
+                        assert supp_orientation == '+/+'
+                        sum_type = 'tandem'
                     if supp['map_subtype']==prim['map_subtype']:
                         sum_subtype = prim['map_subtype']
                     else:
                         sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
-                else:
+                else: # primary is in vector, supp not in vector
                     sum_type = prim['map_type'] + '|' + supp['map_type']
                     sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
-        else:
+        else: # mapping to non-AAV vector region
             if supp is None:
                 sum_type = prim['map_type']
                 sum_subtype = prim['map_subtype']
@@ -372,6 +426,94 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
     #pdb.set_trace()
 
 
+def run_processing_parallel(sorted_sam_filename, d, output_prefix, num_chunks=1):
+
+    reader = pysam.AlignmentFile(open(sorted_sam_filename), check_sq=False)
+    readname_list = [next(reader).qname]
+    for r in reader:
+        if r.qname!=readname_list[-1]:
+            readname_list.append(r.qname)
+
+    total_num_reads = len(readname_list)
+    chunk_size = (total_num_reads // num_chunks) + 1
+    print(f"Total {total_num_reads} reads, dividing into {num_chunks} chunks of size {chunk_size}...")
+
+    pool = []
+    for i in range(num_chunks):
+        p = Process(target=process_alignment_bam,
+                    args=(sorted_sam_filename,
+                          d,
+                          output_prefix+'.'+str(i+1),
+                          readname_list[i*chunk_size],
+                          None if (i+1)*chunk_size>total_num_reads else readname_list[(i+1)*chunk_size],))
+        p.start()
+        pool.append(p)
+        print("Going from {0} to {1}".format(i*chunk_size, (i+1)*chunk_size))
+    for i,p in enumerate(pool):
+        if DEBUG_GLOBAL_FLAG:
+            print(f"DEBUG: Waiting for {i}th pool to finish.")
+        p.join()
+
+    # combine the data together for
+    # *.nonmatch_stat.csv, *.per_read.csv, *.summary.csv, *.tagged.bam
+
+    # copy the first chunk over
+    o = output_prefix + '.1'
+
+    #shutil.copy(o + '.nonmatch_stat.csv', output_prefix + '.nonmatch_stat.csv')
+    #shutil.copy(o + '.per_read.csv', output_prefix + '.per_read.csv')
+    #shutil.copy(o + '.summary.csv', output_prefix + '.summary.csv')
+    #shutil.copy(o + '.tagged.bam', output_prefix + '.tagged.bam')
+
+    f1 = gzip.open(output_prefix + '.nonmatch_stat.csv.gz', 'wb')
+    f2 = open(output_prefix + '.per_read.csv', 'w')
+    f3 = open(output_prefix + '.summary.csv', 'w')
+
+    with open(o + '.nonmatch_stat.csv') as h:
+        for line in h:
+            f1.write(line.encode())
+    with open(o + '.per_read.csv') as h:
+        for line in h:
+            f2.write(line)
+    with open(o + '.summary.csv') as h:
+        for line in h:
+            f3.write(line)
+    reader = pysam.AlignmentFile(o + '.tagged.bam', 'rb', check_sq=False)
+    f4 = pysam.AlignmentFile(output_prefix + '.tagged.bam', "wb", template=reader)
+    for r in reader:
+        f4.write(r)
+
+
+    if DEBUG_GLOBAL_FLAG:
+        print("Combining chunk data...")
+    for i in range(1, num_chunks):
+        o = output_prefix + '.' + str(i+1)
+        with open(o+'.nonmatch_stat.csv') as h:
+            h.readline() # ignore the header
+            f1.write(h.read().encode())
+        with open(o+'.per_read.csv') as h:
+            h.readline() # ignore the header
+            f2.write(h.read())
+        with open(o+'.summary.csv') as h:
+            h.readline() # ignore the header
+            f3.write(h.read())
+        for r in pysam.AlignmentFile(open(o+'.tagged.bam'), 'rb', check_sq=False):
+            f4.write(r)
+
+    f1.close()
+    f2.close()
+    f3.close()
+    f4.close()
+    reader.close()
+    # delete the chunk data
+    if DEBUG_GLOBAL_FLAG:
+        print("Data combining complete. Deleting chunk data.")
+    for i in range(num_chunks):
+        o = output_prefix + '.' + str(i + 1)
+        os.remove(o + '.nonmatch_stat.csv')
+        os.remove(o + '.per_read.csv')
+        os.remove(o + '.summary.csv')
+        os.remove(o + '.tagged.bam')
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
@@ -379,7 +521,8 @@ if __name__ == "__main__":
     parser.add_argument("sam_filename", help="Sorted by read name SAM file")
     parser.add_argument("annotation_txt", help="Annotation file")
     parser.add_argument("output_prefix", help="Output prefix")
-    parser.add_argument("--max_allowed_missing_flanking", default=100, type=int, help="Maximum allowed missing flanking bp to be still considered 'full'")
+    parser.add_argument("--max_allowed_missing_flanking", default=100, type=int, help="Maximum allowed missing flanking bp to be still considered 'full' (default:100)")
+    parser.add_argument("--cpus", type=int, default=1, help="Number of CPUs (default: 1)")
     parser.add_argument("--debug", action="store_true", default=False)
     #parser.add_argument("-f", "--random_frac", default=1., type=float, help="default: off. Random fraction of alignments to subsample.")
     #parser.add_argument("-m", "--max_reads", type=int, default=None, \
@@ -393,4 +536,7 @@ if __name__ == "__main__":
     MAX_DIFF_W_REF = args.max_allowed_missing_flanking
 
     d = read_annotation_file(args.annotation_txt)
-    process_alignment_bam(args.sam_filename, d, args.output_prefix)
+    if args.cpus == 1:
+        process_alignment_bam(args.sam_filename, d, args.output_prefix)
+    else:
+        run_processing_parallel(args.sam_filename, d, args.output_prefix, num_chunks=args.cpus)

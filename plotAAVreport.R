@@ -116,14 +116,31 @@ p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_hi
 p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
                 geom_histogram(aes(y=..count../sum(..count..))) +
                 geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
+                geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
                 xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
                 labs(title="Distribution of Mapped Reference Start Position")
 
 p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
                 geom_histogram(aes(y=..count../sum(..count..))) +
+                geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
                 geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
                 xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
                 labs(title="Distribution of Mapped Reference End Position")
+
+x.read.vector$subtype <- x.read.vector$assigned_subtype
+x.read.vector[!x.read.vector$subtype %in% c("full", "full-gap", "5-partial", "3-partial", "partial", "vector+backbone"), "subtype"] <- 'other'
+
+p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of read length, scAAV, by subtype")
+
+p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of read length, ssAAV, by subtype")
 
 # ----------------------------------------------------
 # produce stats for repcap (if exists)
@@ -176,24 +193,6 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
   cover <- textGrob("AAV Report",
                     gp=gpar(fontface="italic", fontsize=40, col="orangered"))
   grid.draw(cover)
-  grid.arrange(p1.map_starts, p1.map_ends, p1.map_len, ncol=1)
-  if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-    grid.arrange(p1.map_starts.repcap, p1.map_ends.repcap, p1.map_len.repcap, ncol=1)
-  }
-
-  grid.arrange(p1.err_sub, p1.err_del, p1.err_ins, ncol=1)
-  grid.arrange(p1.map_iden, p1.err_dot, p1.err_dot_close)
-
-
-  table.err_len_cat <- tableGrob(df.err_len_cat.vector, rows = NULL, cols = c("Err Type", "Err Length", "Count", "Frequency (%)"))
-  title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-  gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
-  grid.arrange(gt.err_len_cat)
-
-  table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Category", "Count"))
-  #title.err_Ns_summary <- textGrob("Reads with large deletions (cigar 'N')", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-  #gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
-  grid.arrange(p3.err_Ns, p3.err_size_Ns, table.err_Ns_summary, ncol=1)
 
   valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
   x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
@@ -242,4 +241,30 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
   title.atype.vector2 <- textGrob("Assigned AAV Types, detailed (top 20 only)", gp=gpar(fontface="italic", fontsize=12), vjust=-24)
   gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector2))
   grid.arrange(gt.atype.vector2)
+
+
+  grid.arrange(p1.scAAV_len_hist, p1.ssAAV_len_hist)
+
+  grid.arrange(p1.map_starts, p1.map_ends, p1.map_len, ncol=1)
+  if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
+    grid.arrange(p1.map_starts.repcap, p1.map_ends.repcap, p1.map_len.repcap, ncol=1)
+  }
+
+  grid.arrange(p1.err_sub, p1.err_del, p1.err_ins, ncol=1)
+  grid.arrange(p1.map_iden, p1.err_dot, p1.err_dot_close)
+
+
+  table.err_len_cat <- tableGrob(df.err_len_cat.vector, rows = NULL, cols = c("Err Type", "Err Length", "Count", "Frequency (%)"))
+  title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
+  gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
+  grid.arrange(gt.err_len_cat)
+
+  #only plot the "gap/cigarN" page if it was run with --splice
+  if (sum(df.err.vector$type=='gaps')>0) {
+    table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Category", "Count"))
+    #title.err_Ns_summary <- textGrob("Reads with large deletions (cigar 'N')", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
+    #gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
+    grid.arrange(p3.err_Ns, p3.err_size_Ns, table.err_Ns_summary, ncol=1)
+  }
+
   dev.off()
