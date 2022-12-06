@@ -49,18 +49,22 @@ MAX_DIFF_W_REF = 100
 TARGET_GAP_THRESHOLD = 200 # skipping through the on-target region for more than this is considered "full-gap"
 DEBUG_GLOBAL_FLAG = False
 
-def subset_sam_by_readname_list(in_sam, out_sam, per_read_csv, wanted_types, wanted_subtypes):
+def subset_sam_by_readname_list(in_bam, out_bam, per_read_csv, wanted_types, wanted_subtypes, max_count=None):
     qname_list = {} # qname --> (a_type, a_subtype)
     for r in DictReader(open(per_read_csv), delimiter='\t'):
+        #pdb.set_trace()
         if (wanted_types is None or r['assigned_type'] in wanted_types) and (wanted_subtypes is None or r['assigned_subtype'] in wanted_subtypes):
             qname_list[r['read_id']] = (r['assigned_type'], r['assigned_subtype'])
 
-    reader = pysam.AlignmentFile(in_sam, 'r', check_sq=False)
-    writer = pysam.AlignmentFile(out_sam, 'w', header=reader.header)
+    cur_count = 0
+    reader = pysam.AlignmentFile(in_bam, 'rb', check_sq=False)
+    writer = pysam.AlignmentFile(out_bam, 'wb', header=reader.header)
     for r in reader:
         if r.qname in qname_list:
-            add_assigned_types_to_record(r, *qname_list[r.qname])
-            writer.write(r)
+            d = add_assigned_types_to_record(r, *qname_list[r.qname])
+            writer.write(pysam.AlignedSegment.from_dict(d, reader.header))
+            cur_count += 1
+            if max_count is not None and cur_count >= max_count: break
     reader.close()
     writer.close()
 

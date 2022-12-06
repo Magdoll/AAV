@@ -7,6 +7,10 @@ library(gridExtra)
 args <- commandArgs(trailingOnly = TRUE)
 input.prefix <- args[1]
 annot.filename <- args[2] # ex: annotation.txt
+flipflop.summary <- ''
+if (length(args)>=3) {
+    flipflop.summary <- args[3]
+}
 print(input.prefix)
 pdf.report.file <- paste0(input.prefix, "_AAV_report.pdf")
 
@@ -185,6 +189,16 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
                 xlab("Maximum large deletion size") + ylab("Number of Reads") +
                 labs(title="Distribution of biggest deletion for reads")
 
+# ----------------------------------------------------
+# produce stats for flip flop (if exists)
+# ----------------------------------------------------
+
+if (length(flipflop.summary)>1) {
+    data.flipflop <- read.table(flipflop.summary,sep='\t',header=T)
+    df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
+}
+
+
 
   pdf(file=pdf.report.file, width = 6.5, height = 6.5)
 
@@ -242,7 +256,19 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
   gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector2))
   grid.arrange(gt.atype.vector2)
 
+  ### flip flop configurations (if applicable)
+  if (length(flipflop.summary)>1) {
+    table.sc.flipflop <- tableGrob(filter(df.flipflop, type=='scAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+    title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+    table.ss.flipflop <- tableGrob(filter(df.flipflop, type=='ssAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+    title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+    gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
+    gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
+    grid.arrange(gt.sc.flipflop)
+    grid.arrange(gt.ss.flipflop)
+  }
 
+  ### scAAV and ssAAV length histogram
   grid.arrange(p1.scAAV_len_hist, p1.ssAAV_len_hist)
 
   grid.arrange(p1.map_starts, p1.map_ends, p1.map_len, ncol=1)
