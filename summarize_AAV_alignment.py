@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, re, pdb, shutil
+import os, sys, re, pdb, shutil, subprocess
 import gzip
 import random
 from csv import DictReader, DictWriter
@@ -42,6 +42,13 @@ NONMATCH_FIELDS = ['read_id',
                    'type',
                    'type_len']
 
+name_map_scAAV = {'full': 'full',
+                  'left-partial': 'wtITR-partial',
+                  'right-partial': 'mITR-partial',
+                  'partial': 'partial',
+                  'backbone': 'backbone',
+                  'vector+backbone': 'vector+backbone'}
+
 annot_rex = re.compile('NAME=(\S+);TYPE=([a-zA-Z]+);(REGION=\d+\-\d+){0,1}')
 ANNOT_TYPE_PRIORITIES = {'vector': 1, 'repcap': 2, 'helper': 3, 'lambda':4, 'host': 5}
 
@@ -49,11 +56,11 @@ MAX_DIFF_W_REF = 100
 TARGET_GAP_THRESHOLD = 200 # skipping through the on-target region for more than this is considered "full-gap"
 DEBUG_GLOBAL_FLAG = False
 
-def subset_sam_by_readname_list(in_bam, out_bam, per_read_csv, wanted_types, wanted_subtypes, max_count=None):
+def subset_sam_by_readname_list(in_bam, out_bam, per_read_csv, wanted_types, wanted_subtypes, max_count=None, exclude_subtype=False, exclude_type=False):
     qname_list = {} # qname --> (a_type, a_subtype)
     for r in DictReader(open(per_read_csv), delimiter='\t'):
         #pdb.set_trace()
-        if (wanted_types is None or r['assigned_type'] in wanted_types) and (wanted_subtypes is None or r['assigned_subtype'] in wanted_subtypes):
+        if (wanted_types is None or (not exclude_type and r['assigned_type'] in wanted_types) or (exclude_type and r['assigned_type'] not in wanted_types)) and (wanted_subtypes is None or (not exclude_subtype and (r['assigned_subtype'] in wanted_subtypes)) or (exclude_subtype and (r['assigned_subtype'] not in wanted_subtypes))):
             qname_list[r['read_id']] = (r['assigned_type'], r['assigned_subtype'])
 
     cur_count = 0
@@ -145,10 +152,15 @@ def is_on_target(r, valid_start, valid_end):
     Possible assign types:
      - full (within valid_start, valid_end)
      - backbone (outside valid_start, valid_end)
-     - 5-partial (incomplete only on the 5' end)
-     - 3-partial (incomplete only on the 3' end)
+     - left-partial (incomplete only on the 3'/right end)
+     - right-partial (incomplete only on the 5'/left end)
      - partial (incomplete both on the 5' and 3' end)
      - vector+backbone (any amount that crosses over on target and backbone)
+
+    NOTE: at the calling of this method we don't know if it's scAAV/ssAAV yet
+    So later we will further split subtype assignment
+    ssAAV: full|left-partial|right-partial|partial
+    scAAV: full|wtITR-partial|mITR-partial|partial
     """
     if r.reference_end < valid_start or r.reference_start > valid_end:
         return 'backbone'
@@ -157,20 +169,20 @@ def is_on_target(r, valid_start, valid_end):
     diff_end = valid_end - r.reference_end
     valid_len = valid_end - valid_start # this is what a true "full length" (without large deletions) size would be
 
-    if abs(diff_start) <= MAX_DIFF_W_REF: # complete 5' start
-        if abs(diff_end) <= MAX_DIFF_W_REF: # complete 3' end
+    if abs(diff_start) <= MAX_DIFF_W_REF: # complete 5' start/left
+        if abs(diff_end) <= MAX_DIFF_W_REF: # complete 3' end/right
             for cigar_type, num in iter_cigar(r):
                 if cigar_type == 'N' and num >= TARGET_GAP_THRESHOLD:
                     #pdb.set_trace()
                     return 'full-gap'
             return 'full'
-        elif diff_end > MAX_DIFF_W_REF: # 3' partial
-            return '3-partial'
+        elif diff_end > MAX_DIFF_W_REF: # left-partial (incomplete on right/3')
+            return 'left-partial'
         elif diff_end < -MAX_DIFF_W_REF: # into backbone
             return 'vector+backbone'
-    elif diff_start > MAX_DIFF_W_REF: # 5' partial
+    elif diff_start > MAX_DIFF_W_REF: # right-partial (incomplete on left/5')
         if abs(diff_end) <= MAX_DIFF_W_REF:
-            return '5-partial'
+            return 'right-partial'
         elif diff_end > MAX_DIFF_W_REF:
             return 'partial'
         elif diff_end < -MAX_DIFF_W_REF:
@@ -250,6 +262,7 @@ def process_alignment_bam(sorted_sam_filename, annotation, output_prefix, starti
     f1.close()
     f2.close()
     f3.close()
+    return f3.name, output_prefix+'.tagged.bam'
 
 MIN_PRIM_SUPP_COV = 0.8 # at minimum the total of prim + main supp should cover this much of the original sequence
 def find_companion_supp_to_primary(prim, supps):
@@ -296,6 +309,12 @@ def find_companion_supp_to_primary(prim, supps):
     return None, None
 
 def add_assigned_types_to_record(r, a_type, a_subtype):
+    """
+    Add BAM tags
+    AT tag <type:scAAV|ssAAV|unknown>
+    AS tag <type:>
+    AX tag which is "AT-AX"
+    """
     d = r.to_dict()
     d['tags'].append('AT:Z:'+a_type)
     d['tags'].append('AS:Z:'+a_subtype)
@@ -401,7 +420,10 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
                         assert supp_orientation == '+/+'
                         sum_type = 'tandem'
                     if supp['map_subtype']==prim['map_subtype']:
-                        sum_subtype = prim['map_subtype']
+                        if sum_type == 'scAAV': # special case, rename subtype for scAAV
+                            sum_subtype = name_map_scAAV[prim['map_subtype']]
+                        else:
+                            sum_subtype = prim['map_subtype']
                     else:
                         sum_subtype = prim['map_subtype'] + '|' + supp['map_subtype']
                 else: # primary is in vector, supp not in vector
@@ -519,6 +541,8 @@ def run_processing_parallel(sorted_sam_filename, d, output_prefix, num_chunks=1)
         os.remove(o + '.summary.csv')
         os.remove(o + '.tagged.bam')
 
+    return output_prefix+'.per_read.csv', output_prefix+'.tagged.bam'
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
@@ -541,6 +565,34 @@ if __name__ == "__main__":
 
     d = read_annotation_file(args.annotation_txt)
     if args.cpus == 1:
-        process_alignment_bam(args.sam_filename, d, args.output_prefix)
+        per_read_csv, full_out_bam = process_alignment_bam(args.sam_filename, d, args.output_prefix)
     else:
-        run_processing_parallel(args.sam_filename, d, args.output_prefix, num_chunks=args.cpus)
+        per_read_csv, full_out_bam = run_processing_parallel(args.sam_filename, d, args.output_prefix, num_chunks=args.cpus)
+
+    # subset BAM files into major categories for ease of loading into IGV for viewing
+    # subset_sam_by_readname_list(in_bam, out_bam, per_read_csv, wanted_types, wanted_subtypes)
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-full.tagged.bam', per_read_csv, ['scAAV'], ['full'])
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-partials.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'wtITR-partial', 'mITR-partial'])
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-other.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'wtITR-partial', 'mITR-partial', 'full'], exclude_subtype=True)
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-full.tagged.bam', per_read_csv, ['ssAAV'], ['full'])
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-partials.tagged.bam', per_read_csv, ['ssAAV'], ['partial', 'left-partial', 'right-partial'])
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-other.tagged.bam', per_read_csv, ['ssAAV'], ['partial', 'left-partial', 'right-partial', 'full'], exclude_subtype=True)
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.others.tagged.bam', per_read_csv, ['ssAAV', 'scAAV'], None, exclude_type=True)
+
+    # samtools sort/index the above files
+    try: subprocess.check_call("samtools --help > /dev/null", shell=True)
+    except:
+        print("WARNING: unable to call samtools to sort the output BAM files. End.")
+        sys.exit(-1)
+  
+    o = args.output_prefix
+    files = [o+'.scAAV-full',
+             o+'.scAAV-partials',
+             o+'.scAAV-other',
+             o+'.ssAAV-full',
+             o+'.ssAAV-partials',
+             o+'.ssAAV-other',
+             o+'.others']
+    for p in files:
+        subprocess.check_call(f"samtools sort {p}.tagged.bam > {p}.tagged.sorted.bam", shell=True)
+        subprocess.check_call(f"samtools index {p}.tagged.sorted.bam", shell=True)

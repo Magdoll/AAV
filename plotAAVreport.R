@@ -131,8 +131,10 @@ p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
                 xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
                 labs(title="Distribution of Mapped Reference End Position")
 
+valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
+
 x.read.vector$subtype <- x.read.vector$assigned_subtype
-x.read.vector[!x.read.vector$subtype %in% c("full", "full-gap", "5-partial", "3-partial", "partial", "vector+backbone"), "subtype"] <- 'other'
+x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
 
 p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
                        geom_freqpoly() +
@@ -213,7 +215,7 @@ if (length(flipflop.summary)>1) {
   x.all.read[grep("|", as.character(x.all.read$assigned_type), fixed=T), "assigned_type"] <- 'chimeric'
   x.all.read[!(x.all.read$assigned_type %in% valid_types), "assigned_type"] <- 'other'
 
-  valid_subtypes <- c('full', 'full-gap', '3-partial', '5-partial', 'partial', 'backbone', 'vector+backbone')
+  #valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
   x.all.read[!(x.all.read$assigned_subtype %in% valid_subtypes), "assigned_subtype"] <- 'other'
 
   min_show_freq <- 0.01
