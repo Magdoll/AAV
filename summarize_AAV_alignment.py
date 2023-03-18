@@ -43,8 +43,8 @@ NONMATCH_FIELDS = ['read_id',
                    'type_len']
 
 name_map_scAAV = {'full': 'full',
-                  'left-partial': 'wtITR-partial',
-                  'right-partial': 'mITR-partial',
+                  'left-partial': 'left-partial', #'wtITR-partial',
+                  'right-partial': 'right-partial', #'mITR-partial',
                   'partial': 'partial',
                   'backbone': 'backbone',
                   'vector+backbone': 'vector+backbone'}
@@ -160,7 +160,7 @@ def is_on_target(r, valid_start, valid_end):
     NOTE: at the calling of this method we don't know if it's scAAV/ssAAV yet
     So later we will further split subtype assignment
     ssAAV: full|left-partial|right-partial|partial
-    scAAV: full|wtITR-partial|mITR-partial|partial
+    //scAAV: full|wtITR-partial|mITR-partial|partial
     """
     if r.reference_end < valid_start or r.reference_start > valid_end:
         return 'backbone'
@@ -572,8 +572,8 @@ if __name__ == "__main__":
     # subset BAM files into major categories for ease of loading into IGV for viewing
     # subset_sam_by_readname_list(in_bam, out_bam, per_read_csv, wanted_types, wanted_subtypes)
     subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-full.tagged.bam', per_read_csv, ['scAAV'], ['full'])
-    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-partials.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'wtITR-partial', 'mITR-partial'])
-    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-other.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'wtITR-partial', 'mITR-partial', 'full'], exclude_subtype=True)
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-partials.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'left-partial', 'right-partial'])
+    subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.scAAV-other.tagged.bam', per_read_csv, ['scAAV'], ['partial', 'left-partial', 'right-partial', 'full'], exclude_subtype=True)
     subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-full.tagged.bam', per_read_csv, ['ssAAV'], ['full'])
     subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-partials.tagged.bam', per_read_csv, ['ssAAV'], ['partial', 'left-partial', 'right-partial'])
     subset_sam_by_readname_list(full_out_bam, args.output_prefix+'.ssAAV-other.tagged.bam', per_read_csv, ['ssAAV'], ['partial', 'left-partial', 'right-partial', 'full'], exclude_subtype=True)
