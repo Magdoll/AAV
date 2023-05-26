@@ -58,6 +58,7 @@ x.all.err[x.all.err$type=='N',"type"] <- 'gaps'
 x.read.vector <- filter(x.all.read, assigned_type %in% c('scAAV', 'ssAAV'))
 x.err.vector <- filter(x.all.err, read_id %in% x.read.vector$read_id)
 x.summary.vector <- filter(x.all.summary, read_id %in% x.read.vector$read_id)
+write_tsv(x.summary.repcap,str_c(c(input.prefix,".AAV.tsv"), collapse = ""))
 
 total_num_reads <- dim(x.read.vector)[1]
 
@@ -69,6 +70,8 @@ x.err.vector[x.err.vector$type_len>10, "type_len_cat"] <- "11-100"
 x.err.vector[x.err.vector$type_len>100, "type_len_cat"] <- "100-500"
 x.err.vector[x.err.vector$type_len>500, "type_len_cat"] <- ">500"
 x.err.vector$type_len_cat <- ordered(x.err.vector$type_len_cat, levels=c('1-10', '11-100', '100-500', '>500'))
+write_tsv(x.err.vector,str_c(c(input.prefix,".err.tsv"), collapse = ""))
+
 df.err_len_cat.vector <- x.err.vector %>% group_by(type, type_len_cat) %>% summarise(count=n()) %>% mutate(freq=round(100*count/total_err, 2))
 
 df.read_stat_N <- filter(x.err.vector,type=='gaps') %>% group_by(read_id) %>% summarise(max_del_size=max(type_len))
@@ -135,7 +138,7 @@ valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-
 
 x.read.vector$subtype <- x.read.vector$assigned_subtype
 x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
-
+write_tsv(x.all.read,str_c(c(input.prefix,".readvector.tsv"), collapse = ""))
 p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
                        geom_freqpoly() +
                        xlab("Read length (bp)") +
@@ -154,7 +157,7 @@ p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x
 x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
 #x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
 x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
-
+write_tsv(x.summary.repcap,str_c(c(input.prefix,".repcap.tsv"), collapse = ""))
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
     p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
                    xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
@@ -217,7 +220,7 @@ if (length(flipflop.summary)>1) {
 
   #valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
   x.all.read[!(x.all.read$assigned_subtype %in% valid_subtypes), "assigned_subtype"] <- 'other'
-
+  write_tsv(x.all.read,str_c(c(input.prefix,".allread.tsv"), collapse = ""))
   min_show_freq <- 0.01
   total_read_count.all <- dim(x.all.read)[1]
   df.read1 <- x.all.read %>% group_by(assigned_type) %>%
