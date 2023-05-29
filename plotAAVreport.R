@@ -56,7 +56,7 @@ x.all.err[x.all.err$type=='N',"type"] <- 'gaps'
 x.read.vector <- filter(x.all.read, assigned_type %in% c('scAAV', 'ssAAV'))
 x.err.vector <- filter(x.all.err, read_id %in% x.read.vector$read_id)
 x.summary.vector <- filter(x.all.summary, read_id %in% x.read.vector$read_id)
-write_tsv(x.summary.repcap,str_c(c(input.prefix,".AAV.tsv"), collapse = ""))
+write_tsv(x.summary.vector,str_c(c(input.prefix,".AAV.tsv"), collapse = ""))
 
 total_num_reads <- dim(x.read.vector)[1]
 
