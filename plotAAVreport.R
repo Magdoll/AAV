@@ -219,12 +219,12 @@ if (length(flipflop.summary)>1) {
   x.all.read[!(x.all.read$assigned_subtype %in% valid_subtypes), "assigned_subtype"] <- 'other'
 
   min_show_freq <- 0.01
-  total_read_count.all <- dim(x.all.read)[1]
+  total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
   df.read1 <- x.all.read %>% group_by(assigned_type) %>%
-           summarise(count=n()) %>% mutate(freq=round(count*100/total_read_count.all,2))
+           summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
   df.read1 <- df.read1[order(-df.read1$freq),]
   df.read2 <- x.all.read %>% group_by(assigned_type, assigned_subtype) %>%
-           summarise(count=n()) %>% mutate(freq=round(count*100/total_read_count.all,2))
+           summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
   df.read2 <- df.read2[order(-df.read2$freq),]
 
   table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Count", "Frequency (%)"))
@@ -239,12 +239,12 @@ if (length(flipflop.summary)>1) {
 #   grid.arrange(gt.atype2)
 
 
-  total_read_count.vector <- dim(x.read.vector)[1]
+  total_read_count.vector <- sum(x.read.vector$effective_count)
   df.read.vector1 <- x.read.vector %>% group_by(assigned_type) %>%
-         summarise(count=n()) %>% mutate(freq=round(count*100/total_read_count.vector,2))
+         summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
   df.read.vector1 <- df.read.vector1[order(-df.read.vector1$freq),]
   df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
-         summarise(count=n()) %>% mutate(freq=round(count*100/total_read_count.vector,2))
+         summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
   df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
 
   table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))

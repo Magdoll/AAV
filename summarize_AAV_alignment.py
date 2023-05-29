@@ -35,7 +35,8 @@ PER_READ_FIELDS = ['read_id',
                    'has_primary',
                    'has_supp',
                    'assigned_type',
-                   'assigned_subtype']
+                   'assigned_subtype',
+                   'effective_count']
 
 NONMATCH_FIELDS = ['read_id',
                    'pos0',
@@ -50,6 +51,7 @@ name_map_scAAV = {'full': 'full',
                   'vector+backbone': 'vector+backbone'}
 
 annot_rex = re.compile('NAME=(\S+);TYPE=([a-zA-Z]+);(REGION=\d+\-\d+){0,1}')
+ccs_rex = re.compile('\S+\/\d+\/ccs(\/fwd|\/rev)?')
 ANNOT_TYPE_PRIORITIES = {'vector': 1, 'repcap': 2, 'helper': 3, 'lambda':4, 'host': 5}
 
 MAX_DIFF_W_REF = 100
@@ -330,6 +332,10 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
     """
     read_tally = {'primary': None, 'supp': []}
     for r in records:
+        # check ccs id format is <movie>/<zmw>/ccs[/rev or /fwd]
+        if ccs_rex.fullmatch(r.qname) is None:
+            print("WARNING: sequence ID does not follow format movie/zmw/ccs[/rev or /fwd]. Might undercount ssAAV!")
+
         info = {'read_id': r.qname,\
                 'read_len': r.query_length,\
                 'is_mapped': 'N' if r.is_unmapped else 'Y',\
@@ -400,7 +406,8 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
                 'has_primary': prim['is_mapped'],
                 'has_supp': 'Y' if supp is not None else 'N',
                 'assigned_type': 'NA',
-                'assigned_subtype': 'NA'}
+                'assigned_subtype': 'NA',
+                'effective_count': 1}
     if sum_info['has_primary'] == 'Y':
         if prim['map_type'] == 'vector':
             if supp is None: # special case: primary only, maps to vector --> is ssAAV
@@ -445,6 +452,18 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
         sum_info['assigned_type'] = sum_type
         sum_info['assigned_subtype'] = sum_subtype
 
+ 
+    # ###############################################################
+	# 'effective_count' - now look at whether this is an ssAAV type
+    # ex: <movie>/<zmw>/ccs   means potential two species (effective count of 2)
+    # ex: <movie>/<zmw>/ccs/fwd or rev   is just one
+    # NOTE: this can still be undercounting becuz not considering thing that are not ssAAV
+    # ###############################################################
+    if sum_info['assigned_type']=='ssAAV':
+        if sum_info['read_id'].endswith('/ccs'):
+            sum_info['effective_count'] = 2
+        #elif sum_info['read_id'].endswith('/ccs/fwd') or sum_info['read_id'].endswith('/ccs/rev'):
+        #    sum_info['effective_count'] = 1  # not needed, default is to 1
 
     writer3.writerow(sum_info)
     if DEBUG_GLOBAL_FLAG:
