@@ -58,7 +58,7 @@ x.all.err[x.all.err$type=='N',"type"] <- 'gaps'
 x.read.vector <- filter(x.all.read, assigned_type %in% c('scAAV', 'ssAAV'))
 x.err.vector <- filter(x.all.err, read_id %in% x.read.vector$read_id)
 x.summary.vector <- filter(x.all.summary, read_id %in% x.read.vector$read_id)
-write_tsv(x.summary.vector,str_c(c(input.prefix,"vectorAlignments.tsv"), collapse = ""))
+
 
 total_num_reads <- dim(x.read.vector)[1]
 
@@ -138,7 +138,6 @@ valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-
 
 x.read.vector$subtype <- x.read.vector$assigned_subtype
 x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
-write_tsv(x.read.vector,str_c(c(input.prefix,".AAVreadsummary.tsv"), collapse = ""))
 
 p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
                        geom_freqpoly() +
@@ -158,7 +157,7 @@ p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x
 x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
 #x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
 x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
-write_tsv(x.summary.repcap,str_c(c(input.prefix,".repcapAlignments.tsv"), collapse = ""))
+
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
     p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
                    xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
@@ -300,3 +299,5 @@ if (length(flipflop.summary)>1) {
   }
 
   dev.off()
+save.image(file = str_c(c(input.prefix,".pbPlots.RData"), version = NULL, ascii = FALSE, safe = TRUE)
+
