@@ -299,5 +299,6 @@ if (length(flipflop.summary)>1) {
   }
 
   dev.off()
-save.image(file = str_c(c(input.prefix,".pbPlots.RData"), version = NULL, ascii = FALSE, safe = TRUE)
+
+save.image(file = paste0(input.prefix, ".Rdata"))
 
