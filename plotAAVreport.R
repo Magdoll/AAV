@@ -198,7 +198,7 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
 # produce stats for flip flop (if exists)
 # ----------------------------------------------------
 
-if (length(flipflop.summary)>1) {
+if (file.exists(flipflop.summary)) {
     data.flipflop <- read.table(flipflop.summary,sep='\t',header=T)
     df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
 }
