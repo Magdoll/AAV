@@ -262,7 +262,7 @@ if (file.exists(flipflop.summary)) {
   grid.arrange(gt.atype.vector2)
 
   ### flip flop configurations (if applicable)
-  if (length(flipflop.summary)>1) {
+  if (file.exists(flipflop.summary)) {
     table.sc.flipflop <- tableGrob(filter(df.flipflop, type=='scAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
     title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
     table.ss.flipflop <- tableGrob(filter(df.flipflop, type=='ssAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
