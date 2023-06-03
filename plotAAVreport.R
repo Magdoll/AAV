@@ -263,14 +263,20 @@ if (file.exists(flipflop.summary)) {
 
   ### flip flop configurations (if applicable)
   if (file.exists(flipflop.summary)) {
-    table.sc.flipflop <- tableGrob(filter(df.flipflop, type=='scAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-    title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-    table.ss.flipflop <- tableGrob(filter(df.flipflop, type=='ssAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-    title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-    gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
-    gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
-    grid.arrange(gt.sc.flipflop)
-    grid.arrange(gt.ss.flipflop)
+    scff <- filter(df.flipflop, type=='scAAV')
+    ssff <- filter(df.flipflop, type=='ssAAV')
+    if (nrow(scff) > 1) {
+      table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+      title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+      gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
+      grid.arrange(gt.sc.flipflop)
+    } 
+    if (nrow(ssff) > 1) {
+      table.ss.flipflop <- tableGrob(ssff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+      title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+      gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
+      grid.arrange(gt.ss.flipflop)
+    }
   }
 
   ### scAAV and ssAAV length histogram
