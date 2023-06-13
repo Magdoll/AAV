@@ -201,6 +201,8 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
 if (file.exists(flipflop.summary)) {
     data.flipflop <- read.table(flipflop.summary,sep='\t',header=T)
     df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
+    scff <- filter(df.flipflop, type=='scAAV')
+    ssff <- filter(df.flipflop, type=='ssAAV')
 }
 
 
@@ -249,7 +251,8 @@ if (file.exists(flipflop.summary)) {
   df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
          summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
   df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
-
+  df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV',assigned_subtype=='full') %>% select(e_count) %>% as.data.frame()
+  total_ssaavfull <- df.read.ssaav$e_count[1]
   table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
   title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
   gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
@@ -265,6 +268,11 @@ if (file.exists(flipflop.summary)) {
   if (file.exists(flipflop.summary)) {
     scff <- filter(df.flipflop, type=='scAAV')
     ssff <- filter(df.flipflop, type=='ssAAV')
+    ssff.full <- ssff %>% filter(subtype=='vector-full')
+    numssff <- ssff.full$count[1]
+    if (numssff/2 == total_ssaavfull) {
+       ssff <-  ssff %>% mutate(if_else(numssff/2 == total_ssaavful, count*2,count)
+    }
     if (nrow(scff) > 1) {
       table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
       title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
