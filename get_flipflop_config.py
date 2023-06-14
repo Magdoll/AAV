@@ -144,7 +144,7 @@ def main(per_read_csv, tagged_bam, output_prefix):
     fout.close()
 
     print("Output summmary: {0}".format(fout.name))
-    print(f"Indidual BAM files written: {output_prefix}.vector- full,5partial,3partial -flipflop.bam")
+    print(f"Indidual BAM files written: {output_prefix}.vector- full,leftpartial,rightpartial -flipflop.bam")
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
