@@ -271,7 +271,7 @@ if (file.exists(flipflop.summary)) {
     ssff.full <- ssff %>% filter(subtype=='vector-full')
     numssff <- ssff.full$count[1]
     if (numssff/2 == total_ssaavfull) {
-       ssff <-  ssff %>% mutate(if_else(numssff/2 == total_ssaavful, count*2,count)
+       ssff <-  ssff %>% mutate(if_else(numssff/2 == total_ssaavful, count*2,count))
     }
     if (nrow(scff) > 1) {
       table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
