@@ -266,12 +266,12 @@ if (file.exists(flipflop.summary)) {
 
   ### flip flop configurations (if applicable)
   if (file.exists(flipflop.summary)) {
-    scff <- filter(df.flipflop, type=='scAAV')
-    ssff <- filter(df.flipflop, type=='ssAAV')
     ssff.full <- ssff %>% filter(subtype=='vector-full')
-    numssff <- ssff.full$count[1]
-    if (numssff/2 == total_ssaavfull) {
-       ssff <-  ssff %>% mutate(if_else(numssff/2 == total_ssaavful, count*2,count))
+    numssff <- sum(ssff.full$count)
+    if (numssff*2 == total_ssaavfull) {
+       ssff <-  ssff %>% mutate(count=count*2)
+    }else {
+       ssff <-  ssff %>% mutate(count=count)
     }
     if (nrow(scff) > 1) {
       table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
