@@ -1,6 +1,4 @@
-
-library(ggplot2)
-library(dplyr)
+library(tidyverse)
 library(grid)
 library(gridExtra)
 
@@ -43,9 +41,11 @@ for (i in 1:dim(annot)[1]) {
 }
 
 
-x.all.summary <- read.table(paste0(input.prefix, '.summary.csv'),sep='\t',header=T)
-x.all.err <- read.table(paste0(input.prefix, '.nonmatch_stat.csv.gz'),sep='\t',header=T)
-x.all.read <- read.table(paste0(input.prefix, '.per_read.csv'),sep='\t',header=T)
+x.all.summary <- read_tsv(paste0(input.prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=input.prefix,.before=read_id)
+write_tsv(x.all.summary,str_c(c(input.prefix,".alignments.tsv"), collapse = ""))
+
+x.all.err <- read_tsv(paste0(input.prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=input.prefix,.before=read_id)
+x.all.read <- read_tsv(paste0(input.prefix, '.per_read.csv')) %>% mutate(SampleID=input.prefix,.before=read_id)
 
 x.all.err[x.all.err$type=='D',"type"] <- 'deletion'
 x.all.err[x.all.err$type=='I',"type"] <- 'insertion'
@@ -59,6 +59,7 @@ x.read.vector <- filter(x.all.read, assigned_type %in% c('scAAV', 'ssAAV'))
 x.err.vector <- filter(x.all.err, read_id %in% x.read.vector$read_id)
 x.summary.vector <- filter(x.all.summary, read_id %in% x.read.vector$read_id)
 
+
 total_num_reads <- dim(x.read.vector)[1]
 
 total_err <- dim(x.err.vector)[1]
@@ -69,6 +70,8 @@ x.err.vector[x.err.vector$type_len>10, "type_len_cat"] <- "11-100"
 x.err.vector[x.err.vector$type_len>100, "type_len_cat"] <- "100-500"
 x.err.vector[x.err.vector$type_len>500, "type_len_cat"] <- ">500"
 x.err.vector$type_len_cat <- ordered(x.err.vector$type_len_cat, levels=c('1-10', '11-100', '100-500', '>500'))
+write_tsv(x.err.vector,str_c(c(input.prefix,".sequence-error.tsv"), collapse = ""))
+
 df.err_len_cat.vector <- x.err.vector %>% group_by(type, type_len_cat) %>% summarise(count=n()) %>% mutate(freq=round(100*count/total_err, 2))
 
 df.read_stat_N <- filter(x.err.vector,type=='gaps') %>% group_by(read_id) %>% summarise(max_del_size=max(type_len))
@@ -195,9 +198,11 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
 # produce stats for flip flop (if exists)
 # ----------------------------------------------------
 
-if (length(flipflop.summary)>1) {
+if (file.exists(flipflop.summary)) {
     data.flipflop <- read.table(flipflop.summary,sep='\t',header=T)
     df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
+    scff <- filter(df.flipflop, type=='scAAV')
+    ssff <- filter(df.flipflop, type=='ssAAV')
 }
 
 
@@ -217,7 +222,7 @@ if (length(flipflop.summary)>1) {
 
   #valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
   x.all.read[!(x.all.read$assigned_subtype %in% valid_subtypes), "assigned_subtype"] <- 'other'
-
+  write_tsv(x.all.read,str_c(c(input.prefix,".readsummary.tsv"), collapse = ""))
   min_show_freq <- 0.01
   total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
   df.read1 <- x.all.read %>% group_by(assigned_type) %>%
@@ -246,7 +251,8 @@ if (length(flipflop.summary)>1) {
   df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
          summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
   df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
-
+  df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV',assigned_subtype=='full') %>% select(e_count) %>% as.data.frame()
+  total_ssaavfull <- df.read.ssaav$e_count[1]
   table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
   title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
   gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
@@ -259,15 +265,26 @@ if (length(flipflop.summary)>1) {
   grid.arrange(gt.atype.vector2)
 
   ### flip flop configurations (if applicable)
-  if (length(flipflop.summary)>1) {
-    table.sc.flipflop <- tableGrob(filter(df.flipflop, type=='scAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-    title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-    table.ss.flipflop <- tableGrob(filter(df.flipflop, type=='ssAAV'), rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-    title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-    gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
-    gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
-    grid.arrange(gt.sc.flipflop)
-    grid.arrange(gt.ss.flipflop)
+  if (file.exists(flipflop.summary)) {
+    ssff.full <- ssff %>% filter(subtype=='vector-full')
+    numssff <- sum(ssff.full$count)
+    if (numssff*2 == total_ssaavfull) {
+       ssff <-  ssff %>% mutate(count=count*2)
+    }else {
+       ssff <-  ssff %>% mutate(count=count)
+    }
+    if (nrow(scff) > 1) {
+      table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+      title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+      gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
+      grid.arrange(gt.sc.flipflop)
+    } 
+    if (nrow(ssff) > 1) {
+      table.ss.flipflop <- tableGrob(ssff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
+      title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+      gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
+      grid.arrange(gt.ss.flipflop)
+    }
   }
 
   ### scAAV and ssAAV length histogram
@@ -296,3 +313,6 @@ if (length(flipflop.summary)>1) {
   }
 
   dev.off()
+
+save.image(file = paste0(input.prefix, ".Rdata"))
+
