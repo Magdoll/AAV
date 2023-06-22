@@ -251,8 +251,8 @@ if (file.exists(flipflop.summary)) {
   df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
          summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
   df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
-  df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV',assigned_subtype=='full') %>% select(e_count) %>% as.data.frame()
-  total_ssaavfull <- df.read.ssaav$e_count[1]
+  df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>% filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>% select(e_count) %>% as.data.frame()
+  total_ssaav <- sum(df.read.ssaav$e_count)
   table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
   title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
   gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
@@ -266,9 +266,8 @@ if (file.exists(flipflop.summary)) {
 
   ### flip flop configurations (if applicable)
   if (file.exists(flipflop.summary)) {
-    ssff.full <- ssff %>% filter(subtype=='vector-full')
-    numssff <- sum(ssff.full$count)
-    if (numssff*2 == total_ssaavfull) {
+    numssff <- sum(ssff$count)
+    if (numssff*2 == total_ssaav) {
        ssff <-  ssff %>% mutate(count=count*2)
     }else {
        ssff <-  ssff %>% mutate(count=count)
