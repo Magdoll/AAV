@@ -267,10 +267,12 @@ if (file.exists(flipflop.summary)) {
   ### flip flop configurations (if applicable)
   if (file.exists(flipflop.summary)) {
     numssff <- sum(ssff$count)
-    if (numssff*2 == total_ssaav) {
-       ssff <-  ssff %>% mutate(count=count*2)
-    }else {
-       ssff <-  ssff %>% mutate(count=count)
+    if (is.numeric(numssff) & is.numeric(total_ssaav)) {
+      if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
+        ssff <-  ssff %>% mutate(count=count*2)
+      }else {
+        ssff <-  ssff %>% mutate(count=count)
+      }
     }
     if (nrow(scff) > 1) {
       table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
