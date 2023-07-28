@@ -67,20 +67,20 @@ def read_flip_flop_fasta(fasta_filename):
 
 def identify_flip_flop(r):
     """
-    Assume record tag:AT is vector, tag:AX can be full|3-partial|5-partial|partial
+    Assume record tag:AT is vector, tag:AX can be full|left-partial|right-partial|partial
     Add back a tag 'AF' that is [flip/flop]-[flip/flop]
     """
     t = dict(r.tags)
     try:
-        assert t['AX'] in ('vector-full', 'vector-3-partial', 'vector-5-partial', 'vector-partial')
+        assert t['AX'] in ('vector-full', 'vector-left-partial', 'vector-right-partial', 'vector-partial')
     except AssertionError:
         print("Input BAM records must have a `AX` tag assigned by first running summarize_AAV_alignment.py. Abort!")
         sys.exit(-1)
-    config_left, config_right = '?', '?'
+    config_left, config_right = 'unknown', 'unknown'
     if t['AX']=='vector-partial': # ignore, since both sides are missing chunks of ITR
-        return '?', '?'
+        return 'unknown', 'unknown'
 
-    if t['AX'] in ('vector-full', 'vector-3-partial'):
+    if t['AX'] in ('vector-full', 'vector-left-partial'):
         o1 = parasail.sw_trace(r.query, SEQ_LEFT_FLIP, 3, 1, SW_SCORE_MATRIX)
         o2 = parasail.sw_trace(r.query, SEQ_LEFT_FLOP, 3, 1, SW_SCORE_MATRIX)
         if o1.score > o2.score and o1.score > 250: 
@@ -88,9 +88,9 @@ def identify_flip_flop(r):
         elif o2.score > o1.score and o2.score > 250:
             config_left = 'flop'
         else:
-            config_left = '?'
+            config_left = 'unknown'
     
-    if t['AX'] in ('vector-full', 'vector-5-partial'):
+    if t['AX'] in ('vector-full', 'vector-right-partial'):
         o1 = parasail.sw_trace(r.query[-len(SEQ_RIGHT_FLIP)-10:], SEQ_RIGHT_FLIP, 3, 1, SW_SCORE_MATRIX)
         o2 = parasail.sw_trace(r.query[-len(SEQ_RIGHT_FLOP)-10:], SEQ_RIGHT_FLOP, 3, 1, SW_SCORE_MATRIX)
         if o1.score > o2.score and o1.score > 250:
@@ -98,7 +98,7 @@ def identify_flip_flop(r):
         elif o2.score > o1.score and o2.score > 250:
             config_right = 'flop'
         else:
-            config_right = '?'
+            config_right = 'unknown'
     return config_left, config_right
 
 def main(per_read_csv, tagged_bam, output_prefix):
@@ -112,14 +112,14 @@ def main(per_read_csv, tagged_bam, output_prefix):
     reader = pysam.AlignmentFile(open(tagged_bam), 'rb', check_sq=False)
     writer1 = pysam.AlignmentFile(open(output_prefix+'.vector-full-flipflop.bam', 'w'), 'wb',
                                   header=reader.header)
-    writer2 = pysam.AlignmentFile(open(output_prefix+'.vector-5partial-flipflop.bam', 'w'), 'wb',
+    writer2 = pysam.AlignmentFile(open(output_prefix+'.vector-leftpartial-flipflop.bam', 'w'), 'wb',
                                   header=reader.header)
-    writer3 = pysam.AlignmentFile(open(output_prefix+'.vector-3partial-flipflop.bam', 'w'), 'wb',
+    writer3 = pysam.AlignmentFile(open(output_prefix+'.vector-rightpartial-flipflop.bam', 'w'), 'wb',
                                   header=reader.header)
     for r in reader:
         t = dict(r.tags)
         # if r.qname=='m54278_220522_043945/5964021/ccs/rev': break
-        if t['AT'] == 'vector' and t['AX'] in ('vector-full', 'vector-3-partial', 'vector-5-partial'):
+        if t['AT'] == 'vector' and t['AX'] in ('vector-full', 'vector-left-partial', 'vector-right-partial'):
             c_l, c_r = identify_flip_flop(r)
             d = r.to_dict()
             a_type = read_info[r.qname]['assigned_type']
@@ -128,9 +128,9 @@ def main(per_read_csv, tagged_bam, output_prefix):
             d['tags'].append('AG:Z:' + a_type)
             if t['AX'] == 'vector-full':
                 writer = writer1
-            elif t['AX'] == 'vector-5-partial':
+            elif t['AX'] == 'vector-right-partial':
                 writer = writer2
-            elif t['AX'] == 'vector-3-partial':
+            elif t['AX'] == 'vector-left-partial':
                 writer = writer3
             writer.write(pysam.AlignedSegment.from_dict(d, r.header))
             fout.write(r.qname + '\t' + a_type + '\t' + t['AX'] + '\t' +
@@ -144,7 +144,7 @@ def main(per_read_csv, tagged_bam, output_prefix):
     fout.close()
 
     print("Output summmary: {0}".format(fout.name))
-    print(f"Indidual BAM files written: {output_prefix}.vector- full,5partial,3partial -flipflop.bam")
+    print(f"Indidual BAM files written: {output_prefix}.vector- full,leftpartial,rightpartial -flipflop.bam")
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
