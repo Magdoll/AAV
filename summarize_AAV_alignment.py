@@ -196,7 +196,7 @@ def is_on_target(r, valid_start, valid_end):
 def assign_read_type(r, annotation):
     """
     :param read_dict: dict of {'supp', 'primary'}
-    :return: assigned_type, which could be (scAAV, ssAAV, unknown) + (super, full, partial, unknown)
+    :return: assigned_type, which could be (scAAV, ssAAV, unclassified) + (super, full, partial, unclassified)
 
     <assigned_type: ssAAV, scAAV, backbone, helper, repcap, host, can use “+” sign>,
     <assigned_subtype: full, partial, nonAAV>
@@ -313,7 +313,7 @@ def find_companion_supp_to_primary(prim, supps):
 def add_assigned_types_to_record(r, a_type, a_subtype):
     """
     Add BAM tags
-    AT tag <type:scAAV|ssAAV|unknown>
+    AT tag <type:scAAV|ssAAV|unclassified>
     AS tag <type:>
     AX tag which is "AT-AX"
     """
@@ -413,7 +413,7 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
             if supp is None: # special case: primary only, maps to vector --> is ssAAV
                 # double check the special case where there was supp candidates but no companion
                 if len(supps) > 0:
-                    sum_type = 'unknown' # might be a weird case ex: a read covers the region twice as on + strand
+                    sum_type = 'unclassified' # might be a weird case ex: a read covers the region twice as on + strand
                     sum_subtype = prim['map_subtype']
                 else: # never had any supp candidates, def ssAAV
                     sum_type = 'ssAAV'
