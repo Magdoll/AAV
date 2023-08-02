@@ -76,9 +76,9 @@ def identify_flip_flop(r):
     except AssertionError:
         print("Input BAM records must have a `AX` tag assigned by first running summarize_AAV_alignment.py. Abort!")
         sys.exit(-1)
-    config_left, config_right = 'unknown', 'unknown'
+    config_left, config_right = 'unclassified', 'unclassified'
     if t['AX']=='vector-partial': # ignore, since both sides are missing chunks of ITR
-        return 'unknown', 'unknown'
+        return 'unclassified', 'unclassified'
 
     if t['AX'] in ('vector-full', 'vector-left-partial'):
         o1 = parasail.sw_trace(r.query, SEQ_LEFT_FLIP, 3, 1, SW_SCORE_MATRIX)
@@ -88,7 +88,7 @@ def identify_flip_flop(r):
         elif o2.score > o1.score and o2.score > 250:
             config_left = 'flop'
         else:
-            config_left = 'unknown'
+            config_left = 'unclassified'
     
     if t['AX'] in ('vector-full', 'vector-right-partial'):
         o1 = parasail.sw_trace(r.query[-len(SEQ_RIGHT_FLIP)-10:], SEQ_RIGHT_FLIP, 3, 1, SW_SCORE_MATRIX)
@@ -98,7 +98,7 @@ def identify_flip_flop(r):
         elif o2.score > o1.score and o2.score > 250:
             config_right = 'flop'
         else:
-            config_right = 'unknown'
+            config_right = 'unclassified'
     return config_left, config_right
 
 def main(per_read_csv, tagged_bam, output_prefix):
