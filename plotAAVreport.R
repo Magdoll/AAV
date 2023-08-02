@@ -274,6 +274,8 @@ if (file.exists(flipflop.summary)) {
         ssff <-  ssff %>% mutate(count=count)
       }
     }
+    fftbl <- bind_rows(scff,ssff)
+    write_tsv(fftbl,str_c(c(input.prefix,".flipflop.tsv"), collapse = ""))
     if (nrow(scff) > 1) {
       table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
       title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
