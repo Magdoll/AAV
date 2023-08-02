@@ -5,10 +5,12 @@ library(gridExtra)
 args <- commandArgs(trailingOnly = TRUE)
 input.prefix <- args[1]
 annot.filename <- args[2] # ex: annotation.txt
+sampleid <- args[3]
 flipflop.summary <- ''
-if (length(args)>=3) {
-    flipflop.summary <- args[3]
+if (length(args) > 3) {
+    flipflop.summary <- args[4]
 }
+
 print(input.prefix)
 pdf.report.file <- paste0(input.prefix, "_AAV_report.pdf")
 
@@ -41,11 +43,11 @@ for (i in 1:dim(annot)[1]) {
 }
 
 
-x.all.summary <- read_tsv(paste0(input.prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=input.prefix,.before=read_id)
+x.all.summary <- read_tsv(paste0(input.prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=sampleid,.before=read_id)
 write_tsv(x.all.summary,str_c(c(input.prefix,".alignments.tsv"), collapse = ""))
 
-x.all.err <- read_tsv(paste0(input.prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=input.prefix,.before=read_id)
-x.all.read <- read_tsv(paste0(input.prefix, '.per_read.csv')) %>% mutate(SampleID=input.prefix,.before=read_id)
+x.all.err <- read_tsv(paste0(input.prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=sampleid,.before=read_id)
+x.all.read <- read_tsv(paste0(input.prefix, '.per_read.csv')) %>% mutate(SampleID=sampleid,.before=read_id)
 
 x.all.err[x.all.err$type=='D',"type"] <- 'deletion'
 x.all.err[x.all.err$type=='I',"type"] <- 'insertion'
