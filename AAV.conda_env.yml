@@ -10,8 +10,10 @@ dependencies:
     - r>=3.6.0
     - minimap2
     - biopython
+    - parasail-python>=1.3.4
     - pysam
     - r-dplyr
     - r-ggplot2
     - r-gridbase
     - r-gridextra
+    - r-tidyverse
