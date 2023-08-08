@@ -1,0 +1,62 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.rst'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.rst'
+jobs:
+  tests:
+    name: Lint with R and Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest']
+        python: ['3.11', '3.10', '3.9', '3.8', '3.7']
+    defaults:
+      run:
+        # Enable the conda environment via ~/.bashrc and ~/.profile
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Cache conda
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache if dev.conda_env.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('dev.conda_env.yml') }}
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: AAV.ci.env
+          auto-activate-base: false
+          auto-update-conda: true
+          #channel-priority: strict
+          environment-file: CI.conda_env.yml
+          python-version: ${{ matrix.python }}
+          use-only-tar-bz2: true  # Required for caching
+      - name: Show conda environment
+        run: |
+          conda info
+          conda list
+      - name: Lint Python scripts
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          #pylint -E pylint -E -d E1101,E1136,E1138 *.py
+      - name: Lint R script
+        run: |
+          Rscript -e 'library(lintr); options(lintr.error_on_lint=TRUE); lint_dir(".", linters=linters_with_tags("correctness"))'
