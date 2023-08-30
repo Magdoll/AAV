@@ -2,22 +2,20 @@ name: AAV.dev.env
 channels:
     - conda-forge
     - bioconda
-    - anaconda
-    - r
     - defaults
 dependencies:
     - python>=3.7.6
-    - r>=3.6.0
+    - r-base>=3.6.0
     - minimap2
     - biopython
+    - black
     - flake8
     - parasail-python>=1.3.4
     - pylint
     - pysam
     - pytest
-    - r-dplyr
-    - r-ggplot2
     - r-gridbase
     - r-gridextra
     - r-lintr
+    - r-styler
     - r-tidyverse
