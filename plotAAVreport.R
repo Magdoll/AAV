@@ -84,6 +84,9 @@ df.read_stat_N_summary <- data.frame(category=c("Total Reads", "Reads with gaps 
 
 
 ERR_SAMPLE_SIZE <- 50000
+if (dim(x.err.vector)[1] < 50000) {
+   ERR_SAMPLE_SIZE <- dim(x.err.vector)[1]
+}
 x.err2.vector <- x.err.vector[sample(1:dim(x.err.vector)[1], ERR_SAMPLE_SIZE),]
 p1.err_dot <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
