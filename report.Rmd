@@ -1,40 +1,35 @@
 ---
+title: "AAV Report"
+
+date: '`r format(Sys.Date())`'
 output:
   html_document:
     toc: true
     toc_float: false
+  pdf_document:
+    toc: true
+params:
+  input_prefix:
+    value: ""
+  annot_filename:
+    value: "annotation.txt"
+  sampleid:
+    value: ""
+  flipflop_summary:
+    value: ""
+---
+
+---
+subtitle: '`r params$sampleid`'
 ---
 
 ```{r preamble, include=FALSE}
 library(tidyverse)
 library(grid)
 library(gridExtra)
+
+knitr::opts_chunk$set(echo=FALSE, out.width="80%")
 ```
-
-```{r iosetup, message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = FALSE,out.width = "80%")
-#subtitle <- readLines("sample.txt")
-
-# TODO - migrate to rmd2html.R & pass the input paths explicitly here (?)
-args <- commandArgs(trailingOnly = TRUE)
-input.prefix <- args[1]
-annot.filename <- args[2] # ex: annotation.txt
-sampleid <- args[3]
-flipflop.summary <- ''
-if (length(args) > 3) {
-    flipflop.summary <- args[4]
-}
-
-print(input.prefix)
-#pdf.report.file <- paste0(input.prefix, "_AAV_report.pdf")
-```
-
----
-title: "AAV Report"
-subtitle: '`r subtitle`'
-date: '`r format(Sys.Date())`'
----
-
 
 ```{r calculate, message=FALSE, warning=FALSE}
 # read the annotation file to find the vector target region
@@ -49,7 +44,7 @@ TARGET_REGION_END <- 0
 TARGET_REGION_START_REPCAP <- 0
 TARGET_REGION_END_REPCAP <- 0
 
-annot <- read.table(annot.filename)
+annot <- read.table(params$annot_filename)
 for (i in 1:dim(annot)[1]) {
     if (unlist(strsplit(annot[i,],';'))[2]=='TYPE=vector') {
         p <- unlist(strsplit(annot[i,],';'))[3];
@@ -66,11 +61,11 @@ for (i in 1:dim(annot)[1]) {
 }
 
 
-x.all.summary <- read_tsv(paste0(input.prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=sampleid,.before=read_id)
-write_tsv(x.all.summary,str_c(c(input.prefix,".alignments.tsv"), collapse = ""))
+x.all.summary <- read_tsv(paste0(params$input_prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=params$sampleid,.before=read_id)
+write_tsv(x.all.summary,str_c(c(params$input_prefix,".alignments.tsv"), collapse = ""))
 
-x.all.err <- read_tsv(paste0(input.prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=sampleid,.before=read_id)
-x.all.read <- read_tsv(paste0(input.prefix, '.per_read.csv')) %>% mutate(SampleID=sampleid,.before=read_id)
+x.all.err <- read_tsv(paste0(params$input_prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=params$sampleid,.before=read_id)
+x.all.read <- read_tsv(paste0(params$input_prefix, '.per_read.csv')) %>% mutate(SampleID=params$sampleid,.before=read_id)
 
 x.all.err[x.all.err$type=='D',"type"] <- 'deletion'
 x.all.err[x.all.err$type=='I',"type"] <- 'insertion'
@@ -95,7 +90,7 @@ x.err.vector[x.err.vector$type_len>10, "type_len_cat"] <- "11-100"
 x.err.vector[x.err.vector$type_len>100, "type_len_cat"] <- "100-500"
 x.err.vector[x.err.vector$type_len>500, "type_len_cat"] <- ">500"
 x.err.vector$type_len_cat <- ordered(x.err.vector$type_len_cat, levels=c('1-10', '11-100', '100-500', '>500'))
-write_tsv(x.err.vector,str_c(c(input.prefix,".sequence-error.tsv"), collapse = ""))
+write_tsv(x.err.vector,str_c(c(params$input_prefix,".sequence-error.tsv"), collapse = ""))
 
 df.err_len_cat.vector <- x.err.vector %>% group_by(type, type_len_cat) %>% summarise(count=n()) %>% mutate(freq=round(100*count/total_err, 2))
 
@@ -223,20 +218,18 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
 # produce stats for flip flop (if exists)
 # ----------------------------------------------------
 
-if (file.exists(flipflop.summary)) {
-    data.flipflop <- read.table(flipflop.summary,sep='\t',header=T)
+if (file.exists(params$flipflop_summary)) {
+    data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
     df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
     scff <- filter(df.flipflop, type=='scAAV')
     ssff <- filter(df.flipflop, type=='ssAAV')
 }
 
-save.image(file = paste0(input.prefix, ".Rdata"))
+save.image(file = paste0(params$input_prefix, ".Rdata"))
 ```
 
 
 ```{r render, message=FALSE, warning=FALSE}
-#pdf(file=pdf.report.file, width = 6.5, height = 6.5)
-
 #cover
 grid.newpage()
 cover <- textGrob("AAV Report",
@@ -250,7 +243,7 @@ x.all.read[!(x.all.read$assigned_type %in% valid_types), "assigned_type"] <- 'ot
 
 #valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
 x.all.read[!(x.all.read$assigned_subtype %in% valid_subtypes), "assigned_subtype"] <- 'other'
-write_tsv(x.all.read,str_c(c(input.prefix,".readsummary.tsv"), collapse = ""))
+write_tsv(x.all.read,str_c(c(params$input_prefix,".readsummary.tsv"), collapse = ""))
 min_show_freq <- 0.01
 total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
 df.read1 <- x.all.read %>% group_by(assigned_type) %>%
@@ -293,7 +286,7 @@ gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector
 grid.arrange(gt.atype.vector2)
 
 ### flip flop configurations (if applicable)
-if (file.exists(flipflop.summary)) {
+if (file.exists(params$flipflop_summary)) {
 numssff <- sum(ssff$count)
 if (is.numeric(numssff) & is.numeric(total_ssaav)) {
   if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
@@ -303,7 +296,7 @@ if (is.numeric(numssff) & is.numeric(total_ssaav)) {
   }
 }
 fftbl <- bind_rows(scff,ssff)
-write_tsv(fftbl,str_c(c(input.prefix,".flipflop.tsv"), collapse = ""))
+write_tsv(fftbl,str_c(c(params$input_prefix,".flipflop.tsv"), collapse = ""))
 if (nrow(scff) > 1) {
   table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
   title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)

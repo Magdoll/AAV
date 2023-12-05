@@ -23,11 +23,14 @@ clean:
 	rm -vf $(sc_inputs)/scAAV_bc1009_AAV_report.pdf $(ss_inputs)/2022ssAAV_AAV_report.pdf
 
 
-$(ss_inputs)/2022ssaav_aav_report.pdf: ../plotAAVreport.R
-	Rscript $< $(ss_inputs)/2022ssaav $(ss_inputs)/annotation.txt
+$(ss_inputs)/2022ssAAV_AAV_report.pdf: ../plotAAVreport.R
+	Rscript $< $(ss_inputs)/2022ssAAV $(ss_inputs)/annotation.txt
+
+$(out_ss_pfx)_AAV_report.html: ../rmd2html.R ../report.Rmd
+	Rscript $< $(out_ss_pfx) $(ss_inputs)/annotation.txt pAV-CMV-GFP
 
 $(out_ss_pfx)_AAV_report.pdf: ../plotAAVreport.R
-	Rscript $< $(out_ss_pfx) $(ss_inputs)/annotation.txt --cpus 4
+	Rscript $< $(out_ss_pfx) $(ss_inputs)/annotation.txt
 
 $(out_ss_pfx).flipflop_assignments.txt: ../get_flipflop_config.py $(ss_inputs)/2022ssaav.tagged.sorted.bam $(ss_inputs)/2022ssaav.per_read.csv
 	python3 $^ -o $(out_ss_pfx)
@@ -40,7 +43,7 @@ $(sc_inputs)/scAAV_bc1009_AAV_report.pdf: ../plotAAVreport.R
 	Rscript $< $(sc_inputs)/scAAV_bc1009 $(sc_inputs)/annotation.txt
 
 $(out_sc_pfx)_AAV_report.pdf: ../plotAAVreport.R
-	Rscript $< $(out_sc_pfx) $(sc_inputs)/annotation.txt --cpus 4
+	Rscript $< $(out_sc_pfx) $(sc_inputs)/annotation.txt
 
 $(out_sc_pfx).flipflop_assignments.txt: ../get_flipflop_config.py $(sc_inputs)/scAAV_bc1009.tagged.sorted.bam $(sc_inputs)/scAAV_bc1009.per_read.csv
 	python3 $^ -o $(out_sc_pfx)
