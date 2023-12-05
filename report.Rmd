@@ -473,5 +473,14 @@ grid.arrange(table.err_Ns_summary)
 
 # Methods
 
+This workflow can be used to characterize PacBio adeno-associated virus (AAV) products by examining alignment coverage across sequence regions of interest.
+The input BAM file should be from the PacBio sequencer run in AAV mode, or equivalent circular consensus sequencing (CCS) reads (Travers et al., 2010).
+Reads are aligned to the reference sequences using Minimap2 (Li, 2018).
+Resulting alignments are filtered for quality to include primary alignments and reads with mapping quality scores greater than 10.
+Finally, a custom report of alignment statistics is generated in HTML or PDF format.
+
+
 ## Citations
 
+1. Travers, K. J., Chin, C.-S., Rank, D. R., Eid, J. S. & Turner, S. W. A flexible and efficient template format for circular consensus sequencing and SNP detection. Nucleic Acids Research 38, e159–e159 (2010).
+2. Li, H. Minimap2: Pairwise alignment for nucleotide sequences. Bioinformatics 34, 3094–3100 (2018).
