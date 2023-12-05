@@ -17,9 +17,9 @@ params:
 ---
 
 ---
-title: "AAV Report"
-subtitle: '`r params$sampleid`'
-date: '`r format(Sys.Date())`'
+title: "AAV Sequence Analysis"
+subtitle: 'Sample: `r params$sampleid`'
+date: 'Date: `r format(Sys.Date())`'
 ---
 
 ```{r preamble, include=FALSE}
@@ -28,13 +28,6 @@ library(grid)
 library(gridExtra)
 
 knitr::opts_chunk$set(echo=FALSE, out.width="80%")
-```
-
-```{r rendertitle, message=FALSE, warning=FALSE}
-grid.newpage()
-cover <- textGrob("AAV Report",
-                gp=gpar(fontface="italic", fontsize=40, col="orangered"))
-grid.draw(cover)
 ```
 
 
@@ -237,7 +230,11 @@ if (file.exists(params$flipflop_summary)) {
 #save.image(file = paste0(params$input_prefix, ".Rdata"))
 ```
 
-## *Assigned Types by Read Alignment Characteristics, overview*
+# Read type classification
+
+## Definitions
+
+# Assigned Types By Read Alignment Characteristics
 
 ```{r render1, message=FALSE, warning=FALSE}
 valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
@@ -261,7 +258,11 @@ table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Coun
 title.atype1 <- textGrob("Assigned Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
 grid.arrange(gt.atype1)
+```
 
+## Single-Stranded vs Self-Complementary Frequency
+
+```{r render3, message=FALSE, warning=FALSE}
 # table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
 #                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
 #                 theme=ttheme_minimal(base_size = 8))
@@ -281,19 +282,35 @@ total_ssaav <- sum(df.read.ssaav$e_count)
 table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
 title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
-grid.arrange(gt.atype.vector1, p2.atype_violin)
+grid.arrange(gt.atype.vector1)
 ```
 
-### *Assigned AAV Types, detailed (top 20 only)*
+# Distribution of read lengths by assigned AAV types
 
-```{r render2, message=FALSE, warning=FALSE}
+```{r render4, message=FALSE, warning=FALSE}
+grid.arrange(p2.atype_violin)
+```
+
+# Assigned AAV read types detailed analysis
+
+## Assigned AAV Types
+
+```{r render5, message=FALSE, warning=FALSE}
 table.atype.vector2 <- tableGrob(df.read.vector2[1:20,], rows = NULL,
                      cols = c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"),
                      theme=ttheme_minimal(base_size = 8))
 title.atype.vector2 <- textGrob("Assigned AAV Types, detailed (top 20 only)", gp=gpar(fontface="italic", fontsize=12), vjust=-24)
 gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector2))
 grid.arrange(gt.atype.vector2)
+```
 
+### Definitions
+
+# Flip/Flop considerations
+
+## Flip/Flop configurations, scAAV only
+
+```{r render6, message=FALSE, warning=FALSE}
 ### flip flop configurations (if applicable)
 if (file.exists(params$flipflop_summary)) {
 numssff <- sum(ssff$count)
@@ -311,30 +328,133 @@ if (nrow(scff) > 1) {
   title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
   gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
   grid.arrange(gt.sc.flipflop)
-} 
+}
+} else {
+  print("n/a")
+}
+```
+
+
+## Flip/Flop configurations, ssAAV only
+
+```{r render7, message=FALSE, warning=FALSE}
+if (file.exists(params$flipflop_summary)) {
 if (nrow(ssff) > 1) {
   table.ss.flipflop <- tableGrob(ssff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
   title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
   gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
   grid.arrange(gt.ss.flipflop)
 }
+} else {
+  print("n/a")
 }
-
-### scAAV and ssAAV length histogram
-grid.arrange(p1.scAAV_len_hist, p1.ssAAV_len_hist)
-
-grid.arrange(p1.map_starts, p1.map_ends, p1.map_len, ncol=1)
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-grid.arrange(p1.map_starts.repcap, p1.map_ends.repcap, p1.map_len.repcap, ncol=1)
-}
-
-grid.arrange(p1.err_sub, p1.err_del, p1.err_ins, ncol=1)
-grid.arrange(p1.map_iden, p1.err_dot, p1.err_dot_close)
 ```
 
-## *Length Distribution of Different Non-matches*
 
-```{r render3, message=FALSE, warning=FALSE}
+# Distribution of read length by subtype
+
+## Distribution of scAAV read length by subtype
+
+```{r render8, message=FALSE, warning=FALSE}
+### scAAV and ssAAV length histogram
+grid.arrange(p1.scAAV_len_hist)
+```
+
+## Distribution of ssAAV read length by subtype
+
+```{r render9, message=FALSE, warning=FALSE}
+grid.arrange(p1.ssAAV_len_hist)
+```
+
+# AAV Mapping to Reference Sequence
+
+## Gene Therapy Construct
+
+### Distribution of Mapped Reference Start Position
+
+```{r render10, message=FALSE, warning=FALSE}
+grid.arrange(p1.map_starts)
+```
+
+### Distribution of Mapped Reference End Position
+
+```{r render11, message=FALSE, warning=FALSE}
+grid.arrange(p1.map_ends)
+```
+
+### Distribution of Mapped Reference Spanning Region Size
+
+```{r render12, message=FALSE, warning=FALSE}
+grid.arrange(p1.map_len)
+```
+
+## RepCap
+
+### Distribution of Mapped Reference Start Position
+
+```{r render13, message=FALSE, warning=FALSE}
+if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
+  grid.arrange(p1.map_starts.repcap)
+} else {
+  print("n/a")
+}
+```
+
+### Distribution of Mapped Reference End Position
+
+```{r render14, message=FALSE, warning=FALSE}
+if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
+  grid.arrange(p1.map_ends.repcap)
+} else {
+  print("n/a")
+}
+
+```
+
+### Distribution of Mapped Reference Spanning Region Size
+
+```{r render15, message=FALSE, warning=FALSE}
+if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
+  grid.arrange(p1.map_len.repcap)
+} else {
+  print("n/a")
+}
+
+```
+
+# Distribution of Non-matches by Reference Position
+
+## Substitutions
+
+```{r render16, message=FALSE, warning=FALSE}
+grid.arrange(p1.err_sub)
+```
+
+## Deletions
+
+```{r render17, message=FALSE, warning=FALSE}
+grid.arrange(p1.err_del)
+```
+
+## Insertions
+
+```{r render18, message=FALSE, warning=FALSE}
+grid.arrange(p1.err_ins)
+```
+
+# Appendix
+
+## Additional Distributions
+
+```{r renderidentity, message=FALSE, warning=FALSE}
+grid.arrange(p1.map_iden)
+grid.arrange(p1.err_dot)
+grid.arrange(p1.err_dot_close)
+```
+
+## Length Distribution of Different Non-matches
+
+```{r renderdifferent, message=FALSE, warning=FALSE}
 table.err_len_cat <- tableGrob(df.err_len_cat.vector, rows = NULL, cols = c("Err Type", "Err Length", "Count", "Frequency (%)"))
 title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
@@ -345,6 +465,13 @@ if (sum(df.err.vector$type=='gaps')>0) {
 table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Category", "Count"))
 #title.err_Ns_summary <- textGrob("Reads with large deletions (cigar 'N')", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 #gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
-grid.arrange(p3.err_Ns, p3.err_size_Ns, table.err_Ns_summary, ncol=1)
+grid.arrange(p3.err_Ns)
+grid.arrange(p3.err_size_Ns)
+grid.arrange(table.err_Ns_summary)
 }
 ```
+
+# Methods
+
+## Citations
+

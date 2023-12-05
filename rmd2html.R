@@ -4,7 +4,6 @@ working_dir = getwd()
 message(paste("Working directory:", working_dir))
 
 args = commandArgs(trailingOnly = TRUE)
-message(paste(c("Wrapped args:", args), collapse="  "))
 
 input_prefix = args[1]
 annot_filename = args[2] # ex: annotation.txt
