@@ -1,7 +1,4 @@
 ---
-title: "AAV Report"
-
-date: '`r format(Sys.Date())`'
 output:
   html_document:
     toc: true
@@ -20,7 +17,9 @@ params:
 ---
 
 ---
+title: "AAV Report"
 subtitle: '`r params$sampleid`'
+date: '`r format(Sys.Date())`'
 ---
 
 ```{r preamble, include=FALSE}
@@ -30,6 +29,14 @@ library(gridExtra)
 
 knitr::opts_chunk$set(echo=FALSE, out.width="80%")
 ```
+
+```{r rendertitle, message=FALSE, warning=FALSE}
+grid.newpage()
+cover <- textGrob("AAV Report",
+                gp=gpar(fontface="italic", fontsize=40, col="orangered"))
+grid.draw(cover)
+```
+
 
 ```{r calculate, message=FALSE, warning=FALSE}
 # read the annotation file to find the vector target region
@@ -224,18 +231,15 @@ if (file.exists(params$flipflop_summary)) {
     scff <- filter(df.flipflop, type=='scAAV')
     ssff <- filter(df.flipflop, type=='ssAAV')
 }
-
-save.image(file = paste0(params$input_prefix, ".Rdata"))
 ```
 
+```{r saverdata, message=FALSE, warning=FALSE}
+#save.image(file = paste0(params$input_prefix, ".Rdata"))
+```
 
-```{r render, message=FALSE, warning=FALSE}
-#cover
-grid.newpage()
-cover <- textGrob("AAV Report",
-                gp=gpar(fontface="italic", fontsize=40, col="orangered"))
-grid.draw(cover)
+## *Assigned Types by Read Alignment Characteristics, overview*
 
+```{r render1, message=FALSE, warning=FALSE}
 valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
 x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
 x.all.read[grep("|", as.character(x.all.read$assigned_type), fixed=T), "assigned_type"] <- 'chimeric'
@@ -257,13 +261,13 @@ table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Coun
 title.atype1 <- textGrob("Assigned Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
 grid.arrange(gt.atype1)
+
 # table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
 #                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
 #                 theme=ttheme_minimal(base_size = 8))
 # title.atype2 <- textGrob("Assigned Types, detailed (>1% only)", gp=gpar(fontface="italic", fontsize=12), vjust=-18)
 # gt.atype2 <- gTree(children=gList(title.atype2, table.atype2))
 # grid.arrange(gt.atype2)
-
 
 total_read_count.vector <- sum(x.read.vector$effective_count)
 df.read.vector1 <- x.read.vector %>% group_by(assigned_type) %>%
@@ -278,6 +282,11 @@ table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigne
 title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
 grid.arrange(gt.atype.vector1, p2.atype_violin)
+```
+
+### *Assigned AAV Types, detailed (top 20 only)*
+
+```{r render2, message=FALSE, warning=FALSE}
 table.atype.vector2 <- tableGrob(df.read.vector2[1:20,], rows = NULL,
                      cols = c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"),
                      theme=ttheme_minimal(base_size = 8))
@@ -321,8 +330,11 @@ grid.arrange(p1.map_starts.repcap, p1.map_ends.repcap, p1.map_len.repcap, ncol=1
 
 grid.arrange(p1.err_sub, p1.err_del, p1.err_ins, ncol=1)
 grid.arrange(p1.map_iden, p1.err_dot, p1.err_dot_close)
+```
 
+## *Length Distribution of Different Non-matches*
 
+```{r render3, message=FALSE, warning=FALSE}
 table.err_len_cat <- tableGrob(df.err_len_cat.vector, rows = NULL, cols = c("Err Type", "Err Length", "Count", "Frequency (%)"))
 title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
 gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
@@ -335,6 +347,4 @@ table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Cat
 #gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
 grid.arrange(p3.err_Ns, p3.err_size_Ns, table.err_Ns_summary, ncol=1)
 }
-
-#dev.off()
 ```
