@@ -234,6 +234,19 @@ if (file.exists(params$flipflop_summary)) {
 
 ## Definitions
 
+Assigned Type  Definition
+-------------  ---------------------------------------------------------------------------------------------------------------
+scAAV          A read is self-complementary (scAAV) if it has both a primary and supplementary alignment to the vector genome.
+ssAAV          Read mapping to the AAV genome and is not self-complementary.
+other          Read consists of a fragment mapping to the vector but with unexpected polarities (e.g. +,-,- or +,+,+) and cannot be well-defined at the moment. Usually this means there are multiple supplementary alignments on the vector region or and it’s a weird molecule.
+host           Read originates from the host genome that is given (e.g. hg38, CHM13).
+repcap         Read originates from the repcap plasmid. The Rep gene encodes four proteins (Rep78, Rep68, Rep52, and Rep40), which are required for viral genome replication and packaging, while Cap expression gives rise to the viral capsid proteins (VP; VP1/VP2/VP3), which form the outer capsid shell that protects the viral genome, as well as being actively involved in cell binding and internalization.
+helper         Read originates from the helper plasmid. In addition to Rep and Cap, AAV requires a helper plasmid containing genes from adenovirus. These genes (E4, E2a and VA) mediate AAV replication.
+chimeric       Read consists of fragments that map to one or more “genomes” (e.g. vector and host; helper and repcap)
+
+* Note that even though ssAAV distinguishes one ITR as the wildtype (wtITR) and the other as the mutated ITR (mITR) we will still refer to them as leftITR vs rightITR (so using “left-partial” which in this case would be equivalent to saying “mITR-partial” since the mITR is the left IT based on the genomic coordinates given here).
+
+
 # Assigned Types By Read Alignment Characteristics
 
 ```{r render1, message=FALSE, warning=FALSE}
@@ -305,6 +318,16 @@ grid.arrange(gt.atype.vector2)
 ```
 
 ### Definitions
+
+Assigned SubType  Definition
+----------------  ----------
+full              Read consists of a DNA sequence which includes the entire ITR-to-ITR target vector sequence. Read is present in both (+) and (-) polarities.
+left-partial      Read consists of a fragment of the vector originating from the upstream (left ITR) of the vector while not covering the right ITR. Read is present in both (+) and (-) polarities.
+right-partial     Read consists of a fragment of the vector originating from the downstream (right ITR) of the vector while not covering the left ITR. Read is present in both (+) and (-) polarities.
+partial           Read consists of a fragment of the vector originating from within the ITR sequences. Read is present in both (+) and (-) polarities.
+vector+backbone   Read consists of a fragment including the vector as well as plasmid backbone sequence. Read is present in both (+) and (-) polarities.
+backbone          Read consists of a fragment originating solely from the plasmid backbone sequence. Read is present in both (+) and (-) polarities.
+
 
 # Flip/Flop considerations
 
