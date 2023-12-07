@@ -470,34 +470,6 @@ grid.arrange(p1.err_del)
 grid.arrange(p1.err_ins)
 ```
 
-# Appendix
-
-## Additional Distributions
-
-```{r renderidentity, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_iden)
-grid.arrange(p1.err_dot)
-grid.arrange(p1.err_dot_close)
-```
-
-## Length Distribution of Different Non-matches
-
-```{r renderdifferent, message=FALSE, warning=FALSE}
-table.err_len_cat <- tableGrob(df.err_len_cat.vector, rows = NULL, cols = c("Err Type", "Err Length", "Count", "Frequency (%)"))
-title.err_len_cat <- textGrob("Length Distribution of Different Non-matches", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-gt.err_len_cat <- gTree(children=gList(title.err_len_cat, table.err_len_cat))
-grid.arrange(gt.err_len_cat)
-
-#only plot the "gap/cigarN" page if it was run with --splice
-if (sum(df.err.vector$type=='gaps')>0) {
-table.err_Ns_summary <- tableGrob(df.read_stat_N_summary, rows=NULL, cols=c("Category", "Count"))
-#title.err_Ns_summary <- textGrob("Reads with large deletions (cigar 'N')", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-#gt.err_Ns_summary <- gTree(children=gList(title.err_Ns_summary, table.err_Ns_summary))
-grid.arrange(p3.err_Ns)
-grid.arrange(p3.err_size_Ns)
-grid.arrange(table.err_Ns_summary)
-}
-```
 
 # Methods
 
