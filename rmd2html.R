@@ -23,7 +23,7 @@ print(input_params)
 
 rmd_dir = dirname(sub("--file=", "", commandArgs(trailingOnly=FALSE)[4]))
 rmd_path = paste0(rmd_dir, "/report.Rmd")
-message(paste("Rmd location:", rmd_path, sep=" "))
+message(paste("Report template location:", rmd_path, sep=" "))
 
 out_path = paste0(input_prefix, "_AAV_report.html")
 out_dir = dirname(out_path)
