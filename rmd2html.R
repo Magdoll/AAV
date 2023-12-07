@@ -28,7 +28,7 @@ message(paste("Rmd location:", rmd_path, sep=" "))
 out_path = paste0(input_prefix, "_AAV_report.html")
 out_dir = dirname(out_path)
 out_filename = basename(out_path)
-message(paste("Output location:", out_filename, sep=" "))
+message(paste("Output location:", out_path, sep=" "))
 
 rmarkdown::render(
     rmd_path,

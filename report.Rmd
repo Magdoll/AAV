@@ -232,9 +232,9 @@ if (file.exists(params$flipflop_summary)) {
 
 # Read type classification
 
-![ssAAV types](https://github.com/Magdoll/images_public/raw/master/AAV_figures/class_def_ssAAV.png?raw=true)
+![ssAAV types](class_def_ssAAV.png)
 
-![scAAV types](https://github.com/Magdoll/images_public/raw/master/AAV_figures/class_def_scAAV.png?raw=true)
+![scAAV types](class_def_scAAV.png)
 
 
 ## Definitions
