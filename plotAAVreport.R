@@ -46,6 +46,8 @@ for (i in 1:dim(annot)[1]) {
 x.all.summary <- read_tsv(paste0(input.prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=sampleid,.before=read_id)
 write_tsv(x.all.summary,str_c(c(input.prefix,".alignments.tsv"), collapse = ""))
 
+read.seqname <- x.all.summary %>% select(read_id,map_name) %>% unique()
+
 x.all.err <- read_tsv(paste0(input.prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=sampleid,.before=read_id)
 x.all.read <- read_tsv(paste0(input.prefix, '.per_read.csv')) %>% mutate(SampleID=sampleid,.before=read_id)
 
@@ -230,14 +232,22 @@ if (file.exists(flipflop.summary)) {
   write_tsv(x.all.read,str_c(c(input.prefix,".readsummary.tsv"), collapse = ""))
   min_show_freq <- 0.01
   total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
-  df.read1 <- x.all.read %>% group_by(assigned_type) %>%
-           summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
+  
+  df.read1 <- x.all.read %>% inner_join(read.seqname) %>% 
+    mutate(map_name=if_else(assigned_type=='host','host',map_name)) %>% 
+    mutate(map_name=if_else(assigned_type=='chimeric','chimeric',map_name)) %>% 
+    mutate(map_name=if_else(assigned_type=='unmapped','unmapped',map_name)) %>% 
+    group_by(map_name,assigned_type) %>% summarise(e_count=sum(effective_count)) %>% 
+    mutate(freq=round(e_count*100/total_read_count.all,2)) 
+  
+  #df.read1 <- x.all.read %>% group_by(assigned_type) %>%
+  #         summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
   df.read1 <- df.read1[order(-df.read1$freq),]
   df.read2 <- x.all.read %>% group_by(assigned_type, assigned_subtype) %>%
            summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
   df.read2 <- df.read2[order(-df.read2$freq),]
-
-  table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Count", "Frequency (%)"))
+#Here is the issue
+  table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Sequence Name","Assigned Type", "Count", "Frequency (%)"))
   title.atype1 <- textGrob("Assigned Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
   gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
   grid.arrange(gt.atype1)
