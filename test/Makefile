@@ -7,20 +7,20 @@ out_ss_pfx = build/ssAAV
 
 
 .PSEUDO: fast slow clean
-fast: $(sc_inputs)/scAAV_bc1009_AAV_report.pdf $(ss_inputs)/2022ssAAV_AAV_report.pdf
+fast: $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
 
 slow: \
-	$(out_sc_pfx)_AAV_report.pdf \
-	$(out_ss_pfx)_AAV_report.pdf \
 	$(out_sc_pfx).per_read.csv \
 	$(out_ss_pfx).per_read.csv \
 	$(out_sc_pfx).flipflop_assignments.txt \
 	$(out_ss_pfx).flipflop_assignments.txt \
+	$(out_sc_pfx)_AAV_report.html \
+	$(out_ss_pfx)_AAV_report.html
 
 
 clean:
 	#rm -vf build/*
-	rm -vf $(sc_inputs)/scAAV_bc1009_AAV_report.pdf $(ss_inputs)/2022ssAAV_AAV_report.pdf
+	rm -vf $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
 
 
 $(ss_inputs)/2022ssAAV_AAV_report.pdf: ../plotAAVreport.R
