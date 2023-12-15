@@ -1,0 +1,1 @@
+NAME=dsCB-GFP;TYPE=vector;REGION=662-2739;

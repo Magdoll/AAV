@@ -17,5 +17,6 @@ dependencies:
     - r-gridbase
     - r-gridextra
     - r-lintr
+    - r-markdown
     - r-styler
     - r-tidyverse

@@ -7,6 +7,7 @@ RUN apt-get update \
         less \
         pigz \
         samtools \
+        texlive-latex-recommended \
     && rm -rf /var/lib/apt/lists/*
 
 # Conda environment has the name AAV.env
