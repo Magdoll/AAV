@@ -10,7 +10,7 @@ params:
     value: ""
   annot_filename:
     value: "annotation.txt"
-  sampleid:
+  sample_id:
     value: ""
   flipflop_summary:
     value: ""
@@ -18,7 +18,7 @@ params:
 
 ---
 title: "AAV Sequence Analysis"
-subtitle: 'Sample: `r params$sampleid`'
+subtitle: 'Sample: `r params$sample_id`'
 date: 'Date: `r format(Sys.Date())`'
 ---
 
@@ -61,11 +61,11 @@ for (i in 1:dim(annot)[1]) {
 }
 
 
-x.all.summary <- read_tsv(paste0(params$input_prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=params$sampleid,.before=read_id)
+x.all.summary <- read_tsv(paste0(params$input_prefix, '.summary.csv')) %>% mutate(map_start=map_start0,map_end=map_end1) %>% mutate(SampleID=params$sample_id,.before=read_id)
 write_tsv(x.all.summary,str_c(c(params$input_prefix,".alignments.tsv"), collapse = ""))
 
-x.all.err <- read_tsv(paste0(params$input_prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=params$sampleid,.before=read_id)
-x.all.read <- read_tsv(paste0(params$input_prefix, '.per_read.csv')) %>% mutate(SampleID=params$sampleid,.before=read_id)
+x.all.err <- read_tsv(paste0(params$input_prefix, '.nonmatch_stat.csv.gz')) %>% mutate(SampleID=params$sample_id,.before=read_id)
+x.all.read <- read_tsv(paste0(params$input_prefix, '.per_read.csv')) %>% mutate(SampleID=params$sample_id,.before=read_id)
 
 x.all.err[x.all.err$type=='D',"type"] <- 'deletion'
 x.all.err[x.all.err$type=='I',"type"] <- 'insertion'

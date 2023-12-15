@@ -7,7 +7,7 @@ args = commandArgs(trailingOnly = TRUE)
 
 input_prefix = args[1]
 annot_filename = args[2] # ex: annotation.txt
-sampleid = args[3]
+sample_id = args[3]
 flipflop_summary = ''
 if (length(args) > 3) {
     flipflop_summary = args[4]
@@ -16,7 +16,7 @@ if (length(args) > 3) {
 input_params = list(
     input_prefix = input_prefix,
     annot_filename = annot_filename,
-    sampleid = sampleid,
+    sample_id = sample_id,
     flipflop_summary = flipflop_summary)
 message("Parameters:")
 print(input_params)
