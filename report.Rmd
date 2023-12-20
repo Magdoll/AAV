@@ -22,12 +22,12 @@ subtitle: 'Sample: `r params$sample_id`'
 date: 'Date: `r format(Sys.Date())`'
 ---
 
-```{r preamble, include=FALSE}
+```{r setup, include=FALSE}
 library(tidyverse)
 library(grid)
 library(gridExtra)
 
-knitr::opts_chunk$set(echo=FALSE, out.width="80%")
+knitr::opts_chunk$set(echo=FALSE, fig.align="center", out.width="80%")
 ```
 
 
@@ -280,6 +280,17 @@ gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
 grid.arrange(gt.atype1)
 ```
 
+```{r readtypesplot,message=FALSE,warning=FALSE}
+countreads <- df.read1 %>% dplyr::filter(assigned_type != 'Lambda')
+
+# Bar chart
+ggplot(countreads,aes(x=assigned_type, y=freq, fill=assigned_type)) + geom_bar(stat='identity') + xlab("Sequence") + ylab("Percent of Reads")  +   theme_bw()
+
+# Pie chart
+ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="identity", width=1) +  coord_polar("y", start=0) + theme_void()
+```
+
+
 ## Single-Stranded vs Self-Complementary Frequency
 
 ```{r render3, message=FALSE, warning=FALSE}
@@ -337,6 +348,19 @@ backbone        |Read consists of a fragment originating solely from the plasmid
 
 
 # Flip/Flop considerations
+
+Term|Definition
+---:|----------------
+Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', embedded in a larger one, A–A'. The order of these palindromic sequences defines the flip or flop orientation of the ITR.
+
+
+```{r flipflopscplot, message=FALSE, warning=FALSE, results='asis'}
+if (exists("df.flipflop")) {
+  ffplot <- df.flipflop %>% mutate(class=if_else(leftITR == 'unclassified' | rightITR == 'unclassified' | leftITR == 'unknown' | rightITR == 'unknown',"unclassifed",paste(leftITR,rightITR,sep='-'))) %>% group_by(type, subtype, class) %>% summarize(classct=sum(count)) %>% filter(subtype == 'vector-full')
+ggplot(ffplot,aes(x=type,y=classct,fill = class)) + geom_bar(stat='identity') + labs(x='Assigned Type',y='Number of Reads') + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank())
+}
+```
+
 
 ## Flip/Flop configurations, scAAV only
 
