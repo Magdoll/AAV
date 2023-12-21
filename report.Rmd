@@ -33,6 +33,11 @@ options(scipen=999)
 ```
 
 
+```{r sortorder, message=FALSE, warning=FALSE}
+valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
+valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
+```
+
 ```{r calculate, message=FALSE, warning=FALSE}
 # read the annotation file to find the vector target region
 #
@@ -156,7 +161,6 @@ p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
                 xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
                 labs(title="Distribution of Mapped Reference End Position")
 
-valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
 
 x.read.vector$subtype <- x.read.vector$assigned_subtype
 x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
@@ -255,7 +259,6 @@ chimeric     |Read consists of fragments that map to one or more “genomes” (
 # Assigned Types By Read Alignment Characteristics
 
 ```{r render1, message=FALSE, warning=FALSE}
-valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
 x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
 x.all.read[grep("|", as.character(x.all.read$assigned_type), fixed=T), "assigned_type"] <- 'chimeric'
 x.all.read[!(x.all.read$assigned_type %in% valid_types), "assigned_type"] <- 'other'
