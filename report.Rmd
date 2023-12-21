@@ -228,10 +228,6 @@ if (file.exists(params$flipflop_summary)) {
 }
 ```
 
-```{r saverdata, message=FALSE, warning=FALSE}
-#save.image(file = paste0(params$input_prefix, ".Rdata"))
-```
-
 `\pagebreak`{=latex}
 
 # Read type classification
@@ -282,7 +278,7 @@ gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
 grid.arrange(gt.atype1)
 ```
 
-```{r readtypesplot,message=FALSE,warning=FALSE}
+```{r readtypesplot, message=FALSE, warning=FALSE}
 countreads <- df.read1 %>% dplyr::filter(assigned_type != 'Lambda')
 
 # Bar chart
@@ -386,7 +382,7 @@ if (nrow(scff) > 1) {
   grid.arrange(gt.sc.flipflop)
 }
 } else {
-  print("n/a")
+  cat("No flip/flop analysis results available to display.")
 }
 ```
 
@@ -402,7 +398,7 @@ if (nrow(ssff) > 1) {
   grid.arrange(gt.ss.flipflop)
 }
 } else {
-  print("n/a")
+  cat("No flip/flop analysis results available to display.")
 }
 ```
 
@@ -452,7 +448,7 @@ grid.arrange(p1.map_len)
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_starts.repcap)
 } else {
-  print("n/a")
+  cat("Not enough RepCap-mapped reads available to plot.")
 }
 ```
 
@@ -462,9 +458,8 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_ends.repcap)
 } else {
-  print("n/a")
+  cat("Not enough RepCap-mapped reads available to plot.")
 }
-
 ```
 
 ### Distribution of Mapped Reference Spanning Region Size
@@ -473,10 +468,10 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_len.repcap)
 } else {
-  print("n/a")
+  cat("Not enough RepCap-mapped reads available to plot.")
 }
-
 ```
+
 
 # Distribution of Non-matches by Reference Position
 
@@ -512,3 +507,8 @@ Finally, a custom report of alignment statistics is generated in HTML or PDF for
 
 1. Travers, K. J., Chin, C.-S., Rank, D. R., Eid, J. S. & Turner, S. W. A flexible and efficient template format for circular consensus sequencing and SNP detection. Nucleic Acids Research 38, e159–e159 (2010).
 2. Li, H. Minimap2: Pairwise alignment for nucleotide sequences. Bioinformatics 34, 3094–3100 (2018).
+
+
+```{r saverdata, message=FALSE, warning=FALSE}
+#save.image(file = paste0(params$input_prefix, ".Rdata"))
+```
