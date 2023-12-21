@@ -28,6 +28,8 @@ library(grid)
 library(gridExtra)
 
 knitr::opts_chunk$set(echo=FALSE, fig.align="center", out.width="80%")
+# Avoid scientific notation
+options(scipen=999)
 ```
 
 
