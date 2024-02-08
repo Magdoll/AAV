@@ -106,8 +106,9 @@ num_reads_large_del <- sum(df.read_stat_N$max_del_size>=200)
 freq_reads_large_del <- round(num_reads_large_del*100/total_num_reads, 2)
 df.read_stat_N_summary <- data.frame(category=c("Total Reads", "Reads with gaps >200bp"),
                            value=c(total_num_reads, paste0(num_reads_large_del, " (", freq_reads_large_del, "%)")))
+```
 
-
+```{r sharedplots, message=FALSE, warning=FALSE}
 ERR_SAMPLE_SIZE <- 50000
 x.err2.vector <- x.err.vector[sample(1:dim(x.err.vector)[1], ERR_SAMPLE_SIZE),]
 p1.err_dot <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
@@ -139,14 +140,6 @@ p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=
                    subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
-p1.map_iden <- ggplot(x.summary.vector, aes(map_iden*100, fill=map_subtype)) + geom_histogram(binwidth=0.01) +
-               xlab("Mapping Identity (%)") + ylab("Read Count") +
-               labs(title="Distribution of Mapped Identity to Reference")
-
-p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
-               xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-               labs(title="Distribution of Mapped Reference Spanning Region Size")
-
 p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
                 geom_histogram(aes(y=..count../sum(..count..))) +
                 geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
@@ -160,6 +153,15 @@ p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
                 geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
                 xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
                 labs(title="Distribution of Mapped Reference End Position")
+
+p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
+               xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
+               labs(title="Distribution of Mapped Reference Spanning Region Size")
+
+# Unused here, but available for downstream consumers
+p1.map_iden <- ggplot(x.summary.vector, aes(map_iden*100, fill=map_subtype)) + geom_histogram(binwidth=0.01) +
+               xlab("Mapping Identity (%)") + ylab("Read Count") +
+               labs(title="Distribution of Mapped Identity to Reference")
 
 
 x.read.vector$subtype <- x.read.vector$assigned_subtype
@@ -176,6 +178,7 @@ p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x
                        xlab("Read length (bp)") +
                        ylab("Count") +
                        labs(title="Distribution of read length, ssAAV, by subtype")
+
 
 # ----------------------------------------------------
 # produce stats for repcap (if exists)
@@ -202,35 +205,19 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
                     labs(title="Repcap: Distribution of Mapped Reference End Position")
 }
 
-allowed_subtypes <- c('full', 'full-gap', 'vector+backbone')
-p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_subtypes), aes(x=paste(assigned_type, assigned_subtype,sep='-'), y=read_len)) +
-                    geom_violin() +
-                    xlab("Assigned AAV Type") + ylab("Read Length") +
-                    labs(title="Distribution of Read Lengths by Assigned AAV Type") +
-                    theme(axis.text.x=element_text(angle = -45, hjust = 0))
-
-
+# Unused here, but available for downstream consumers
 p3.err_Ns <- ggplot(filter(df.err.vector,type=='gaps'), aes(x=pos0_div, y=count)) + geom_bar(fill='orange', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
               labs(title="Distribution of large deletion events (cigar 'N'), by position",
                    subtitle="Higher bars indicate hot spots for large deletions w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
+# Unused here, but available for downstream consumers
 p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(binwidth=100) +
                 xlab("Maximum large deletion size") + ylab("Number of Reads") +
                 labs(title="Distribution of biggest deletion for reads")
-
-# ----------------------------------------------------
-# produce stats for flip flop (if exists)
-# ----------------------------------------------------
-
-if (file.exists(params$flipflop_summary)) {
-    data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
-    df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
-    scff <- filter(df.flipflop, type=='scAAV')
-    ssff <- filter(df.flipflop, type=='ssAAV')
-}
 ```
+
 
 `\pagebreak`{=latex}
 
@@ -258,7 +245,7 @@ chimeric     |Read consists of fragments that map to one or more “genomes” (
 
 # Assigned Types By Read Alignment Characteristics
 
-```{r render1, message=FALSE, warning=FALSE}
+```{r sopt1, message=FALSE, warning=FALSE}
 x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
 x.all.read[grep("|", as.character(x.all.read$assigned_type), fixed=T), "assigned_type"] <- 'chimeric'
 x.all.read[!(x.all.read$assigned_type %in% valid_types), "assigned_type"] <- 'other'
@@ -281,7 +268,7 @@ gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
 grid.arrange(gt.atype1)
 ```
 
-```{r readtypesplot, message=FALSE, warning=FALSE}
+```{r barpercentreads, message=FALSE, warning=FALSE}
 countreads <- df.read1 %>% dplyr::filter(assigned_type != 'Lambda')
 
 # Bar chart
@@ -294,7 +281,7 @@ ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="i
 
 ## Single-Stranded vs Self-Complementary Frequency
 
-```{r render3, message=FALSE, warning=FALSE}
+```{r sopt2, message=FALSE, warning=FALSE}
 # table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
 #                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
 #                 theme=ttheme_minimal(base_size = 8))
@@ -319,7 +306,16 @@ grid.arrange(gt.atype.vector1)
 
 # Distribution of read lengths by assigned AAV types
 
-```{r render4, message=FALSE, warning=FALSE}
+```{r atypeviolin, message=FALSE, warning=FALSE}
+allowed_subtypes <- c('full', 'full-gap', 'vector+backbone')
+p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_subtypes),
+                         aes(x=paste(assigned_type, assigned_subtype,sep='-'),
+                             y=read_len)) +
+                    geom_violin() +
+                    xlab("Assigned AAV Type") + ylab("Read Length") +
+                    labs(title="Distribution of Read Lengths by Assigned AAV Type") +
+                    theme(axis.text.x=element_text(angle = -45, hjust = 0))
+
 grid.arrange(p2.atype_violin)
 ```
 
@@ -327,7 +323,7 @@ grid.arrange(p2.atype_violin)
 
 ## Assigned AAV Types
 
-```{r render5, message=FALSE, warning=FALSE}
+```{r sopt3, message=FALSE, warning=FALSE}
 table.atype.vector2 <- tableGrob(df.read.vector2[1:20,], rows = NULL,
                      cols = c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"),
                      theme=ttheme_minimal(base_size = 8))
@@ -355,53 +351,83 @@ Term|Definition
 Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', embedded in a larger one, A–A'. The order of these palindromic sequences defines the flip or flop orientation of the ITR.
 
 
-```{r flipflopscplot, message=FALSE, warning=FALSE, results='asis'}
-if (exists("df.flipflop")) {
-  ffplot <- df.flipflop %>% mutate(class=if_else(leftITR == 'unclassified' | rightITR == 'unclassified' | leftITR == 'unknown' | rightITR == 'unknown',"unclassifed",paste(leftITR,rightITR,sep='-'))) %>% group_by(type, subtype, class) %>% summarize(classct=sum(count)) %>% filter(subtype == 'vector-full')
-ggplot(ffplot,aes(x=type,y=classct,fill = class)) + geom_bar(stat='identity') + labs(x='Assigned Type',y='Number of Reads') + theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.border = element_blank(),panel.background = element_blank())
+```{r flipflopplot, message=FALSE, warning=FALSE, results='asis'}
+# Calculate stats and generate plot for flip/flop analysis (if available)
+if (file.exists(params$flipflop_summary)) {
+  data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
+  df.flipflop <- data.flipflop %>%
+      group_by(type, subtype, leftITR, rightITR) %>%
+      summarise(count=n())
+  scff <- filter(df.flipflop, type=='scAAV')
+  ssff <- filter(df.flipflop, type=='ssAAV')
+
+  # Double single-stranded counts if appropriate
+  numssff <- sum(ssff$count)
+  if (is.numeric(numssff) & is.numeric(total_ssaav)) {
+    if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
+      ssff <-  ssff %>% mutate(count=count*2)
+    } else {
+      ssff <-  ssff %>% mutate(count=count)
+    }
+  }
+  # Write TSV of flip flop configurations
+  fftbl <- bind_rows(scff, ssff)
+  write_tsv(fftbl,str_c(c(params$input_prefix,".flipflop.tsv"), collapse = ""))
+
+  # Generate flip/flop summary plot
+  ffplot <- df.flipflop %>%
+      mutate(class=if_else(leftITR == 'unclassified' | rightITR == 'unclassified' | leftITR == 'unknown' | rightITR == 'unknown',
+                           "unclassifed",
+                           paste(leftITR, rightITR, sep='-'))) %>%
+      group_by(type, subtype, class) %>%
+      summarize(classct=sum(count)) %>%
+      filter(subtype == 'vector-full')
+  ggplot(ffplot, aes(x=type,y=classct,fill = class)) +
+    geom_bar(stat='identity') +
+    labs(x='Assigned Type', y='Number of Reads') +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank())
+
+} else {
+  cat("No flip/flop analysis results available to display.")
 }
 ```
 
 
 ## Flip/Flop configurations, scAAV only
 
-```{r render6, message=FALSE, warning=FALSE}
-### flip flop configurations (if applicable)
-if (file.exists(params$flipflop_summary)) {
-numssff <- sum(ssff$count)
-if (is.numeric(numssff) & is.numeric(total_ssaav)) {
-  if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
-    ssff <-  ssff %>% mutate(count=count*2)
-  }else {
-    ssff <-  ssff %>% mutate(count=count)
-  }
-}
-fftbl <- bind_rows(scff,ssff)
-write_tsv(fftbl,str_c(c(params$input_prefix,".flipflop.tsv"), collapse = ""))
-if (nrow(scff) > 1) {
-  table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-  title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+```{r flipflopsc, message=FALSE, warning=FALSE}
+if (exists("scff") & (nrow(scff) > 1)) {
+  table.sc.flipflop <- tableGrob(scff,
+      rows=NULL,
+      cols=c("type", "subtype", "leftITR", "rightITR", "count"))
+  title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only",
+      gp=gpar(fontface="italic", fontsize=15),
+      vjust=-20)
   gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
   grid.arrange(gt.sc.flipflop)
-}
 } else {
-  cat("No flip/flop analysis results available to display.")
+  cat("No scAAV flip/flop analysis results available to display.")
 }
 ```
 
 
 ## Flip/Flop configurations, ssAAV only
 
-```{r render7, message=FALSE, warning=FALSE}
-if (file.exists(params$flipflop_summary)) {
-if (nrow(ssff) > 1) {
-  table.ss.flipflop <- tableGrob(ssff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-  title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
+```{r flipflopss, message=FALSE, warning=FALSE}
+if (exists("ssff") & (nrow(ssff) > 1)) {
+  table.ss.flipflop <- tableGrob(ssff,
+      rows=NULL,
+      cols=c("type", "subtype", "leftITR", "rightITR", "count"))
+  title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only",
+      gp=gpar(fontface="italic", fontsize=15),
+      vjust=-20)
   gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
   grid.arrange(gt.ss.flipflop)
-}
 } else {
-  cat("No flip/flop analysis results available to display.")
+  cat("No ssAAV flip/flop analysis results available to display.")
 }
 ```
 
@@ -410,14 +436,15 @@ if (nrow(ssff) > 1) {
 
 ## Distribution of scAAV read length by subtype
 
-```{r render8, message=FALSE, warning=FALSE}
-### scAAV and ssAAV length histogram
+```{r lenhisto2_sc, message=FALSE, warning=FALSE}
+# scAAV length histogram
 grid.arrange(p1.scAAV_len_hist)
 ```
 
 ## Distribution of ssAAV read length by subtype
 
-```{r render9, message=FALSE, warning=FALSE}
+```{r lenhisto2_ss, message=FALSE, warning=FALSE}
+# ssAAV length histogram
 grid.arrange(p1.ssAAV_len_hist)
 ```
 
@@ -427,19 +454,19 @@ grid.arrange(p1.ssAAV_len_hist)
 
 ### Distribution of Mapped Reference Start Position
 
-```{r render10, message=FALSE, warning=FALSE}
+```{r lenhisto2_start, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_starts)
 ```
 
 ### Distribution of Mapped Reference End Position
 
-```{r render11, message=FALSE, warning=FALSE}
+```{r lenhisto2_end, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_ends)
 ```
 
 ### Distribution of Mapped Reference Spanning Region Size
 
-```{r render12, message=FALSE, warning=FALSE}
+```{r lenhisto2_size, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_len)
 ```
 
@@ -447,7 +474,7 @@ grid.arrange(p1.map_len)
 
 ### Distribution of Mapped Reference Start Position
 
-```{r render13, message=FALSE, warning=FALSE}
+```{r lenhisto2_rc_start, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_starts.repcap)
 } else {
@@ -457,7 +484,7 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 
 ### Distribution of Mapped Reference End Position
 
-```{r render14, message=FALSE, warning=FALSE}
+```{r lenhisto2_rc_end, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_ends.repcap)
 } else {
@@ -467,7 +494,7 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 
 ### Distribution of Mapped Reference Spanning Region Size
 
-```{r render15, message=FALSE, warning=FALSE}
+```{r lenhisto2_rc_size, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
   grid.arrange(p1.map_len.repcap)
 } else {
@@ -480,19 +507,19 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 
 ## Substitutions
 
-```{r render16, message=FALSE, warning=FALSE}
+```{r varplots_sub, message=FALSE, warning=FALSE}
 grid.arrange(p1.err_sub)
 ```
 
 ## Deletions
 
-```{r render17, message=FALSE, warning=FALSE}
+```{r varplots_del, message=FALSE, warning=FALSE}
 grid.arrange(p1.err_del)
 ```
 
 ## Insertions
 
-```{r render18, message=FALSE, warning=FALSE}
+```{r varplots_ins, message=FALSE, warning=FALSE}
 grid.arrange(p1.err_ins)
 ```
 
