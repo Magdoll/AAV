@@ -114,29 +114,29 @@ x.err2.vector <- x.err.vector[sample(1:dim(x.err.vector)[1], ERR_SAMPLE_SIZE),]
 p1.err_dot <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches", subtitle="Each point is a non-match from a read, only 50k points at most")
+               labs(title="Distribution of non-matches", subtitle="Each point is a non-match from a read, only 50k points at most")
 
 p1.err_dot_close <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
                ylim(c(0, 100)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
+               labs(title="Distribution of non-matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
 
 p1.err_sub <- ggplot(filter(df.err.vector,type=='mismatch'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkgreen', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Substitutions",
+              labs(title="Distribution of non-matches by reference position, substitutions",
                    subtitle="Higher bars indicate hot spots for substitutions w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
 p1.err_del <- ggplot(filter(df.err.vector,type=='deletion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkred', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Deletions",
+              labs(title="Distribution of non-matches by reference position, deletions",
                    subtitle="Higher bars indicate hot spots for deletion w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
 p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkblue', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Insertions",
+              labs(title="Distribution of non-matches by reference position, insertions",
                    subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
@@ -145,23 +145,23 @@ p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
                 geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
                 geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
                 xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of Mapped Reference Start Position")
+                labs(title="Distribution of mapped reference start position")
 
 p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
                 geom_histogram(aes(y=..count../sum(..count..))) +
                 geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
                 geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
                 xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of Mapped Reference End Position")
+                labs(title="Distribution of mapped reference end position")
 
 p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
                xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-               labs(title="Distribution of Mapped Reference Spanning Region Size")
+               labs(title="Distribution of mapped reference spanning region size")
 
 # Unused here, but available for downstream consumers
 p1.map_iden <- ggplot(x.summary.vector, aes(map_iden*100, fill=map_subtype)) + geom_histogram(binwidth=0.01) +
                xlab("Mapping Identity (%)") + ylab("Read Count") +
-               labs(title="Distribution of Mapped Identity to Reference")
+               labs(title="Distribution of mapped identity to reference")
 
 
 x.read.vector$subtype <- x.read.vector$assigned_subtype
@@ -190,19 +190,19 @@ x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
     p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
                    xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-                   labs(title="Repcap: Distribution of Mapped Reference Spanning Region Size")
+                   labs(title="RepCap: Distribution of mapped reference spanning region size")
 
     p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
                     geom_histogram(aes(y=..count../sum(..count..))) +
                     geom_vline(xintercept=TARGET_REGION_START_REPCAP, color='red', lty=2) +
                     xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                    labs(title="Repcap: Distribution of Mapped Reference Start Position")
+                    labs(title="RepCap: Distribution of mapped reference start position")
 
     p1.map_ends.repcap <- ggplot(x.summary.repcap, aes(map_end1, fill=map_subtype)) +
                     geom_histogram(aes(y=..count../sum(..count..))) +
                     geom_vline(xintercept=TARGET_REGION_END_REPCAP, color='red', lty=2) +
                     xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                    labs(title="Repcap: Distribution of Mapped Reference End Position")
+                    labs(title="RepCap: Distribution of mapped reference end position")
 }
 
 # Unused here, but available for downstream consumers
@@ -243,7 +243,7 @@ chimeric     |Read consists of fragments that map to one or more “genomes” (
 * Note that even though ssAAV distinguishes one ITR as the wildtype (wtITR) and the other as the mutated ITR (mITR) we will still refer to them as leftITR vs rightITR (so using “left-partial” which in this case would be equivalent to saying “mITR-partial” since the mITR is the left IT based on the genomic coordinates given here).
 
 
-# Assigned Types By Read Alignment Characteristics
+# Assigned types by read alignment characteristics
 
 ```{r sopt1, message=FALSE, warning=FALSE}
 x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
@@ -279,7 +279,7 @@ ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="i
 ```
 
 
-## Single-Stranded vs Self-Complementary Frequency
+## Single-stranded vs self-complementary frequency
 
 ```{r sopt2, message=FALSE, warning=FALSE}
 # table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
@@ -313,7 +313,7 @@ p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_sub
                              y=read_len)) +
                     geom_violin() +
                     xlab("Assigned AAV Type") + ylab("Read Length") +
-                    labs(title="Distribution of Read Lengths by Assigned AAV Type") +
+                    labs(title="Distribution of read lengths by assigned AAV type") +
                     theme(axis.text.x=element_text(angle = -45, hjust = 0))
 
 grid.arrange(p2.atype_violin)
@@ -344,7 +344,7 @@ vector+backbone |Read consists of a fragment including the vector as well as pla
 backbone        |Read consists of a fragment originating solely from the plasmid backbone sequence. Read is present in both (+) and (-) polarities.
 
 
-# Flip/Flop considerations
+# Flip/flop considerations
 
 Term|Definition
 ---:|----------------
@@ -396,7 +396,7 @@ if (file.exists(params$flipflop_summary)) {
 ```
 
 
-## Flip/Flop configurations, scAAV only
+## Flip/flop configurations, scAAV only
 
 ```{r flipflopsc, message=FALSE, warning=FALSE}
 if (exists("scff") & (nrow(scff) > 1)) {
@@ -414,7 +414,7 @@ if (exists("scff") & (nrow(scff) > 1)) {
 ```
 
 
-## Flip/Flop configurations, ssAAV only
+## Flip/flop configurations, ssAAV only
 
 ```{r flipflopss, message=FALSE, warning=FALSE}
 if (exists("ssff") & (nrow(ssff) > 1)) {
@@ -448,23 +448,23 @@ grid.arrange(p1.scAAV_len_hist)
 grid.arrange(p1.ssAAV_len_hist)
 ```
 
-# AAV Mapping to Reference Sequence
+# AAV mapping to reference sequence
 
-## Gene Therapy Construct
+## Gene therapy construct
 
-### Distribution of Mapped Reference Start Position
+### Distribution of mapped reference start position
 
 ```{r lenhisto2_start, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_starts)
 ```
 
-### Distribution of Mapped Reference End Position
+### Distribution of mapped reference end position
 
 ```{r lenhisto2_end, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_ends)
 ```
 
-### Distribution of Mapped Reference Spanning Region Size
+### Distribution of mapped reference spanning region size
 
 ```{r lenhisto2_size, message=FALSE, warning=FALSE}
 grid.arrange(p1.map_len)
@@ -472,7 +472,7 @@ grid.arrange(p1.map_len)
 
 ## RepCap
 
-### Distribution of Mapped Reference Start Position
+### Distribution of mapped reference start position
 
 ```{r lenhisto2_rc_start, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
@@ -482,7 +482,7 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 }
 ```
 
-### Distribution of Mapped Reference End Position
+### Distribution of mapped reference end position
 
 ```{r lenhisto2_rc_end, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
@@ -492,7 +492,7 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 }
 ```
 
-### Distribution of Mapped Reference Spanning Region Size
+### Distribution of mapped reference spanning region size
 
 ```{r lenhisto2_rc_size, message=FALSE, warning=FALSE}
 if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
@@ -503,7 +503,7 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 ```
 
 
-# Distribution of Non-matches by Reference Position
+# Distribution of non-matches by reference position
 
 ## Substitutions
 
