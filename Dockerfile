@@ -11,9 +11,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Conda environment has the name AAV.env
-COPY AAV.conda_env.yml ./AAV.conda_env.yml
+COPY AAV.conda_env.yml ./conda_env.yml
 RUN conda install -n base conda-libmamba-solver && conda config --set solver libmamba
-RUN conda env create -v -f AAV.conda_env.yml
+RUN conda env create -v -f conda_env.yml
 RUN echo "conda activate AAV.env" >> ~/.bashrc
 
 # Executable scripts for the pipeline
