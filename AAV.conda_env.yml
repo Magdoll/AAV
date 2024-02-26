@@ -12,6 +12,7 @@ dependencies:
     - pysam
     - r-gridbase
     - r-gridextra
+    - r-flextable
     - r-lintr
     - r-markdown
     - r-tidyverse

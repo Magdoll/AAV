@@ -24,12 +24,22 @@ date: 'Date: `r format(Sys.Date())`'
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+
 library(grid)
 library(gridExtra)
+library(knitr)
+library(flextable)
 
 knitr::opts_chunk$set(echo=FALSE, fig.align="center", out.width="80%")
 # Avoid scientific notation
 options(scipen=999)
+# Table aesthetic
+set_flextable_defaults(
+  font.family="Verdana",
+  padding=5,
+  tabcolsep=5,
+  table.layout="autofit",
+  theme_fun="theme_vanilla")
 ```
 
 
@@ -258,14 +268,10 @@ total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
 df.read1 <- x.all.read %>% group_by(assigned_type) %>%
        summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
 df.read1 <- df.read1[order(-df.read1$freq),]
-df.read2 <- x.all.read %>% group_by(assigned_type, assigned_subtype) %>%
-       summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
-df.read2 <- df.read2[order(-df.read2$freq),]
 
-table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Count", "Frequency (%)"))
-title.atype1 <- textGrob("Assigned Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
-grid.arrange(gt.atype1)
+# gt.atype1: "Assigned Types By Read Alignment Characteristics, overview"
+flextable(df.read1) %>%
+  set_header_labels(values=c("Assigned Type", "Count", "Frequency (%)"))
 ```
 
 ```{r barpercentreads, message=FALSE, warning=FALSE}
@@ -282,6 +288,11 @@ ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="i
 ## Single-stranded vs self-complementary frequency
 
 ```{r sopt2, message=FALSE, warning=FALSE}
+#df.read2 <- x.all.read %>%
+#    group_by(assigned_type, assigned_subtype) %>%
+#    summarise(e_count=sum(effective_count)) %>%
+#    mutate(freq=round(e_count*100/total_read_count.all,2))
+#df.read2 <- df.read2[order(-df.read2$freq),]
 # table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
 #                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
 #                 theme=ttheme_minimal(base_size = 8))
@@ -298,10 +309,10 @@ df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %
 df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
 df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>% filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>% select(e_count) %>% as.data.frame()
 total_ssaav <- sum(df.read.ssaav$e_count)
-table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
-title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
-grid.arrange(gt.atype.vector1)
+
+# gt.atype.vector1: "Assigned AAV Types By Read Alignment Characteristics, overview"
+flextable(df.read.vector1) %>%
+      set_header_labels(values=c("Assigned Type",  "Count", "Frequency (%)"))
 ```
 
 # Distribution of read lengths by assigned AAV types
@@ -321,20 +332,17 @@ grid.arrange(p2.atype_violin)
 
 # Assigned AAV read types detailed analysis
 
-## Assigned AAV Types
+## Assigned AAV Types (top 20)
 
 ```{r sopt3, message=FALSE, warning=FALSE}
-table.atype.vector2 <- tableGrob(df.read.vector2[1:20,], rows = NULL,
-                     cols = c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"),
-                     theme=ttheme_minimal(base_size = 8))
-title.atype.vector2 <- textGrob("Assigned AAV Types, detailed (top 20 only)", gp=gpar(fontface="italic", fontsize=12), vjust=-24)
-gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector2))
-grid.arrange(gt.atype.vector2)
+# gt.atype.vector2: "Assigned AAV Types, detailed (top 20 only)"
+flextable(df.read.vector2[1:20,]) %>%
+      set_header_labels(values=c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"))
 ```
 
 ### Definitions
 
-Assigned SubType|Definition
+Assigned Subtype|Definition
 ---------------:|----------------------------------------------------------------
 full            |Read consists of a DNA sequence which includes the entire ITR-to-ITR target vector sequence. Read is present in both (+) and (-) polarities.
 left-partial    |Read consists of a fragment of the vector originating from the upstream (left ITR) of the vector while not covering the right ITR. Read is present in both (+) and (-) polarities.
@@ -400,14 +408,9 @@ if (file.exists(params$flipflop_summary)) {
 
 ```{r flipflopsc, message=FALSE, warning=FALSE}
 if (exists("scff") & (nrow(scff) > 1)) {
-  table.sc.flipflop <- tableGrob(scff,
-      rows=NULL,
-      cols=c("type", "subtype", "leftITR", "rightITR", "count"))
-  title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only",
-      gp=gpar(fontface="italic", fontsize=15),
-      vjust=-20)
-  gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
-  grid.arrange(gt.sc.flipflop)
+  # gt.sc.flipflop: "Flip/Flop configurations, scAAV only"
+  flextable(scff) %>%
+    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
   cat("No scAAV flip/flop analysis results available to display.")
 }
@@ -418,14 +421,9 @@ if (exists("scff") & (nrow(scff) > 1)) {
 
 ```{r flipflopss, message=FALSE, warning=FALSE}
 if (exists("ssff") & (nrow(ssff) > 1)) {
-  table.ss.flipflop <- tableGrob(ssff,
-      rows=NULL,
-      cols=c("type", "subtype", "leftITR", "rightITR", "count"))
-  title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only",
-      gp=gpar(fontface="italic", fontsize=15),
-      vjust=-20)
-  gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
-  grid.arrange(gt.ss.flipflop)
+  # gt.ss.flipflop: "Flip/Flop configurations, ssAAV only"
+  flextable(ssff) %>%
+    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
   cat("No ssAAV flip/flop analysis results available to display.")
 }
