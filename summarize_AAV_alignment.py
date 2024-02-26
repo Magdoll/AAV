@@ -385,6 +385,7 @@ def process_alignment_records_for_a_read(records, annotation, writer1, writer2, 
 
     if len(supps) == 0:
         supp = None
+        supp_orientation = None
     elif len(supps) >= 1: # there's multiple supp, find the companion matching supp
         supp, supp_orientation = find_companion_supp_to_primary(prim, supps)
         # supp could be None, in which case there is best matching supp!
