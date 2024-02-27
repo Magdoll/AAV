@@ -10,8 +10,6 @@ dependencies:
     - flake8
     - parasail-python>=1.3.4
     - pysam
-    - r-gridbase
-    - r-gridextra
     - r-flextable
     - r-lintr
     - r-markdown

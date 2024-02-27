@@ -24,10 +24,6 @@ date: 'Date: `r format(Sys.Date())`'
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-
-library(grid)
-library(gridExtra)
-library(knitr)
 library(flextable)
 
 knitr::opts_chunk$set(echo=FALSE, fig.align="center", out.width="80%")
@@ -116,9 +112,14 @@ num_reads_large_del <- sum(df.read_stat_N$max_del_size>=200)
 freq_reads_large_del <- round(num_reads_large_del*100/total_num_reads, 2)
 df.read_stat_N_summary <- data.frame(category=c("Total Reads", "Reads with gaps >200bp"),
                            value=c(total_num_reads, paste0(num_reads_large_del, " (", freq_reads_large_del, "%)")))
+
+x.read.vector$subtype <- x.read.vector$assigned_subtype
+x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
 ```
 
-```{r sharedplots, message=FALSE, warning=FALSE}
+```{r extra_plots, message=FALSE, warning=FALSE}
+# Unused here, but available for downstream consumers
+
 ERR_SAMPLE_SIZE <- 50000
 x.err2.vector <- x.err.vector[sample(1:dim(x.err.vector)[1], ERR_SAMPLE_SIZE),]
 p1.err_dot <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
@@ -132,97 +133,16 @@ p1.err_dot_close <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_poin
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
                labs(title="Distribution of non-matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
 
-p1.err_sub <- ggplot(filter(df.err.vector,type=='mismatch'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkgreen', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of non-matches by reference position, substitutions",
-                   subtitle="Higher bars indicate hot spots for substitutions w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
-
-p1.err_del <- ggplot(filter(df.err.vector,type=='deletion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkred', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of non-matches by reference position, deletions",
-                   subtitle="Higher bars indicate hot spots for deletion w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
-
-p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkblue', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of non-matches by reference position, insertions",
-                   subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
-
-p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
-                geom_histogram(aes(y=..count../sum(..count..))) +
-                geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
-                geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
-                xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of mapped reference start position")
-
-p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
-                geom_histogram(aes(y=..count../sum(..count..))) +
-                geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
-                geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
-                xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of mapped reference end position")
-
-p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
-               xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-               labs(title="Distribution of mapped reference spanning region size")
-
-# Unused here, but available for downstream consumers
 p1.map_iden <- ggplot(x.summary.vector, aes(map_iden*100, fill=map_subtype)) + geom_histogram(binwidth=0.01) +
                xlab("Mapping Identity (%)") + ylab("Read Count") +
                labs(title="Distribution of mapped identity to reference")
 
-
-x.read.vector$subtype <- x.read.vector$assigned_subtype
-x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
-
-p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
-                       geom_freqpoly() +
-                       xlab("Read length (bp)") +
-                       ylab("Count") +
-                       labs(title="Distribution of read length, scAAV, by subtype")
-
-p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x=read_len, color=subtype)) +
-                       geom_freqpoly() +
-                       xlab("Read length (bp)") +
-                       ylab("Count") +
-                       labs(title="Distribution of read length, ssAAV, by subtype")
-
-
-# ----------------------------------------------------
-# produce stats for repcap (if exists)
-# ----------------------------------------------------
-x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
-#x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
-x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
-
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-    p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
-                   xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-                   labs(title="RepCap: Distribution of mapped reference spanning region size")
-
-    p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
-                    geom_histogram(aes(y=..count../sum(..count..))) +
-                    geom_vline(xintercept=TARGET_REGION_START_REPCAP, color='red', lty=2) +
-                    xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                    labs(title="RepCap: Distribution of mapped reference start position")
-
-    p1.map_ends.repcap <- ggplot(x.summary.repcap, aes(map_end1, fill=map_subtype)) +
-                    geom_histogram(aes(y=..count../sum(..count..))) +
-                    geom_vline(xintercept=TARGET_REGION_END_REPCAP, color='red', lty=2) +
-                    xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                    labs(title="RepCap: Distribution of mapped reference end position")
-}
-
-# Unused here, but available for downstream consumers
 p3.err_Ns <- ggplot(filter(df.err.vector,type=='gaps'), aes(x=pos0_div, y=count)) + geom_bar(fill='orange', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
               labs(title="Distribution of large deletion events (cigar 'N'), by position",
                    subtitle="Higher bars indicate hot spots for large deletions w.r.t reference") +
                xlab("Reference Position") + ylab("Frequency")
 
-# Unused here, but available for downstream consumers
 p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(binwidth=100) +
                 xlab("Maximum large deletion size") + ylab("Number of Reads") +
                 labs(title="Distribution of biggest deletion for reads")
@@ -269,7 +189,6 @@ df.read1 <- x.all.read %>% group_by(assigned_type) %>%
        summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
 df.read1 <- df.read1[order(-df.read1$freq),]
 
-# gt.atype1: "Assigned Types By Read Alignment Characteristics, overview"
 flextable(df.read1) %>%
   set_header_labels(values=c("Assigned Type", "Count", "Frequency (%)"))
 ```
@@ -288,18 +207,6 @@ ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="i
 ## Single-stranded vs self-complementary frequency
 
 ```{r sopt2, message=FALSE, warning=FALSE}
-#df.read2 <- x.all.read %>%
-#    group_by(assigned_type, assigned_subtype) %>%
-#    summarise(e_count=sum(effective_count)) %>%
-#    mutate(freq=round(e_count*100/total_read_count.all,2))
-#df.read2 <- df.read2[order(-df.read2$freq),]
-# table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
-#                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
-#                 theme=ttheme_minimal(base_size = 8))
-# title.atype2 <- textGrob("Assigned Types, detailed (>1% only)", gp=gpar(fontface="italic", fontsize=12), vjust=-18)
-# gt.atype2 <- gTree(children=gList(title.atype2, table.atype2))
-# grid.arrange(gt.atype2)
-
 total_read_count.vector <- sum(x.read.vector$effective_count)
 df.read.vector1 <- x.read.vector %>% group_by(assigned_type) %>%
      summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
@@ -310,7 +217,6 @@ df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
 df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>% filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>% select(e_count) %>% as.data.frame()
 total_ssaav <- sum(df.read.ssaav$e_count)
 
-# gt.atype.vector1: "Assigned AAV Types By Read Alignment Characteristics, overview"
 flextable(df.read.vector1) %>%
       set_header_labels(values=c("Assigned Type",  "Count", "Frequency (%)"))
 ```
@@ -319,6 +225,7 @@ flextable(df.read.vector1) %>%
 
 ```{r atypeviolin, message=FALSE, warning=FALSE}
 allowed_subtypes <- c('full', 'full-gap', 'vector+backbone')
+
 p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_subtypes),
                          aes(x=paste(assigned_type, assigned_subtype,sep='-'),
                              y=read_len)) +
@@ -327,20 +234,19 @@ p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_sub
                     labs(title="Distribution of read lengths by assigned AAV type") +
                     theme(axis.text.x=element_text(angle = -45, hjust = 0))
 
-grid.arrange(p2.atype_violin)
+p2.atype_violin
 ```
 
 # Assigned AAV read types detailed analysis
 
-## Assigned AAV Types (top 20)
+## Assigned AAV types (top 20)
 
 ```{r sopt3, message=FALSE, warning=FALSE}
-# gt.atype.vector2: "Assigned AAV Types, detailed (top 20 only)"
 flextable(df.read.vector2[1:20,]) %>%
-      set_header_labels(values=c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"))
+      set_header_labels(values=c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"))
 ```
 
-### Definitions
+## Definitions
 
 Assigned Subtype|Definition
 ---------------:|----------------------------------------------------------------
@@ -408,7 +314,6 @@ if (file.exists(params$flipflop_summary)) {
 
 ```{r flipflopsc, message=FALSE, warning=FALSE}
 if (exists("scff") & (nrow(scff) > 1)) {
-  # gt.sc.flipflop: "Flip/Flop configurations, scAAV only"
   flextable(scff) %>%
     set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
@@ -421,7 +326,6 @@ if (exists("scff") & (nrow(scff) > 1)) {
 
 ```{r flipflopss, message=FALSE, warning=FALSE}
 if (exists("ssff") & (nrow(ssff) > 1)) {
-  # gt.ss.flipflop: "Flip/Flop configurations, ssAAV only"
   flextable(ssff) %>%
     set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
@@ -432,69 +336,90 @@ if (exists("ssff") & (nrow(ssff) > 1)) {
 
 # Distribution of read length by subtype
 
-## Distribution of scAAV read length by subtype
-
-```{r lenhisto2_sc, message=FALSE, warning=FALSE}
+```{r lenhisto2_subtype, message=FALSE, warning=FALSE}
 # scAAV length histogram
-grid.arrange(p1.scAAV_len_hist)
-```
+p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of scAAV read length by subtype")
 
-## Distribution of ssAAV read length by subtype
-
-```{r lenhisto2_ss, message=FALSE, warning=FALSE}
 # ssAAV length histogram
-grid.arrange(p1.ssAAV_len_hist)
+p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of ssAAV read length by subtype")
+
+p1.scAAV_len_hist
+p1.ssAAV_len_hist
 ```
 
 # AAV mapping to reference sequence
 
 ## Gene therapy construct
 
-### Distribution of mapped reference start position
+```{r lenhisto2_construct, message=FALSE, warning=FALSE}
+p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
+    geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
+    xlab("Mapped Reference Start Position") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped read starts on construct")
 
-```{r lenhisto2_start, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_starts)
-```
+p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
+    geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
+    xlab("Mapped Reference End Position") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped read ends on construct")
 
-### Distribution of mapped reference end position
+p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    xlab("Mapped Reference Length") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped spanning region sizes on construct")
 
-```{r lenhisto2_end, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_ends)
-```
-
-### Distribution of mapped reference spanning region size
-
-```{r lenhisto2_size, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_len)
+p1.map_starts
+p1.map_ends
+p1.map_len
 ```
 
 ## RepCap
 
-### Distribution of mapped reference start position
+```{r lenhisto2_rc, message=FALSE, warning=FALSE}
+# Produce stats for repcap (if exists)
 
-```{r lenhisto2_rc_start, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_starts.repcap)
-} else {
-  cat("Not enough RepCap-mapped reads available to plot.")
-}
-```
+x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
+#x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
+x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
 
-### Distribution of mapped reference end position
+# Only plot if at least 10 reads
+if (dim(x.read.repcap)[1] > 10) {
 
-```{r lenhisto2_rc_end, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_ends.repcap)
-} else {
-  cat("Not enough RepCap-mapped reads available to plot.")
-}
-```
+  p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      geom_vline(xintercept=TARGET_REGION_START_REPCAP, color='red', lty=2) +
+      xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped read starts on RepCap")
 
-### Distribution of mapped reference spanning region size
+  p1.map_ends.repcap <- ggplot(x.summary.repcap, aes(map_end1, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      geom_vline(xintercept=TARGET_REGION_END_REPCAP, color='red', lty=2) +
+      xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped read ends on RepCap")
 
-```{r lenhisto2_rc_size, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_len.repcap)
+  p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped spanning region sizes on RepCap")
+
+  p1.map_starts.repcap
+  p1.map_ends.repcap
+  p1.map_len.repcap
+
 } else {
   cat("Not enough RepCap-mapped reads available to plot.")
 }
@@ -503,22 +428,31 @@ if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
 
 # Distribution of non-matches by reference position
 
-## Substitutions
+```{r varplots, message=FALSE, warning=FALSE}
+p1.err_sub <- ggplot(filter(df.err.vector,type=='mismatch'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkgreen', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Substitutions by reference position",
+         subtitle="Higher bars indicate hot spots for substitutions w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-```{r varplots_sub, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_sub)
-```
+p1.err_del <- ggplot(filter(df.err.vector,type=='deletion'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkred', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Deletions by reference position",
+         subtitle="Higher bars indicate hot spots for deletion w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-## Deletions
+p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkblue', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Insertions by reference position",
+         subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-```{r varplots_del, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_del)
-```
-
-## Insertions
-
-```{r varplots_ins, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_ins)
+p1.err_sub
+p1.err_del
+p1.err_ins
 ```
 
 
