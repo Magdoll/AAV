@@ -387,17 +387,19 @@ p1.map_ends
 p1.map_len
 ```
 
-## RepCap
+<!-- optional RepCap section -->
 
-```{r lenhisto2_rc, message=FALSE, warning=FALSE}
+```{r lenhisto2_rc, message=FALSE, warning=FALSE, results='asis'}
 # Produce stats for repcap (if exists)
 
 x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
 #x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
 x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
 
-# Only plot if at least 10 reads
+# Only render this subsection if at enough reads mapped to repcap
 if (dim(x.read.repcap)[1] > 10) {
+  # Subsection heading in Markdown
+  cat("## RepCap\n\n")
 
   p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
       geom_histogram(aes(y=..count../sum(..count..))) +
@@ -419,9 +421,6 @@ if (dim(x.read.repcap)[1] > 10) {
   p1.map_starts.repcap
   p1.map_ends.repcap
   p1.map_len.repcap
-
-} else {
-  cat("Not enough RepCap-mapped reads available to plot.")
 }
 ```
 
