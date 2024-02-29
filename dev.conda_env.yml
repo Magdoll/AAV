@@ -14,9 +14,8 @@ dependencies:
     - pylint
     - pysam
     - pytest
-    - r-gridbase
-    - r-gridextra
     - r-lintr
     - r-markdown
+    - r-flextable
     - r-styler
     - r-tidyverse

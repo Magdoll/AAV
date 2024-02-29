@@ -22,14 +22,27 @@ subtitle: 'Sample: `r params$sample_id`'
 date: 'Date: `r format(Sys.Date())`'
 ---
 
-```{r preamble, include=FALSE}
+```{r setup, include=FALSE}
 library(tidyverse)
-library(grid)
-library(gridExtra)
+library(flextable)
 
-knitr::opts_chunk$set(echo=FALSE, out.width="80%")
+knitr::opts_chunk$set(echo=FALSE, fig.align="center", out.width="80%")
+# Avoid scientific notation
+options(scipen=999)
+# Table aesthetic
+set_flextable_defaults(
+  font.family="Verdana",
+  padding=5,
+  tabcolsep=5,
+  table.layout="autofit",
+  theme_fun="theme_vanilla")
 ```
 
+
+```{r sortorder, message=FALSE, warning=FALSE}
+valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
+valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
+```
 
 ```{r calculate, message=FALSE, warning=FALSE}
 # read the annotation file to find the vector target region
@@ -100,109 +113,29 @@ freq_reads_large_del <- round(num_reads_large_del*100/total_num_reads, 2)
 df.read_stat_N_summary <- data.frame(category=c("Total Reads", "Reads with gaps >200bp"),
                            value=c(total_num_reads, paste0(num_reads_large_del, " (", freq_reads_large_del, "%)")))
 
+x.read.vector$subtype <- x.read.vector$assigned_subtype
+x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
+```
+
+```{r extra_plots, message=FALSE, warning=FALSE}
+# Unused here, but available for downstream consumers
 
 ERR_SAMPLE_SIZE <- 50000
 x.err2.vector <- x.err.vector[sample(1:dim(x.err.vector)[1], ERR_SAMPLE_SIZE),]
 p1.err_dot <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches", subtitle="Each point is a non-match from a read, only 50k points at most")
+               labs(title="Distribution of non-matches", subtitle="Each point is a non-match from a read, only 50k points at most")
 
 p1.err_dot_close <- ggplot(x.err2.vector, aes(x=pos0+1, y=type_len)) + geom_point(aes(color=type), alpha=0.5) +
                xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
                ylim(c(0, 100)) +
                xlab("Reference Position") + ylab("Sub/Ins/Del Length") +
-               labs(title="Distribution of Non-Matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
-
-p1.err_sub <- ggplot(filter(df.err.vector,type=='mismatch'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkgreen', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Substitutions",
-                   subtitle="Higher bars indicate hot spots for substitutions w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
-
-p1.err_del <- ggplot(filter(df.err.vector,type=='deletion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkred', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Deletions",
-                   subtitle="Higher bars indicate hot spots for deletion w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
-
-p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=count)) + geom_bar(fill='darkblue', stat='identity') +
-              xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
-              labs(title="Distribution of Non-matches by Reference Position, Insertions",
-                   subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
-               xlab("Reference Position") + ylab("Frequency")
+               labs(title="Distribution of non-matches (of sizes <100 only)", subtitle="Each point is a non-match from a read, only 50k points at most")
 
 p1.map_iden <- ggplot(x.summary.vector, aes(map_iden*100, fill=map_subtype)) + geom_histogram(binwidth=0.01) +
                xlab("Mapping Identity (%)") + ylab("Read Count") +
-               labs(title="Distribution of Mapped Identity to Reference")
-
-p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
-               xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-               labs(title="Distribution of Mapped Reference Spanning Region Size")
-
-p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
-                geom_histogram(aes(y=..count../sum(..count..))) +
-                geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
-                geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
-                xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of Mapped Reference Start Position")
-
-p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
-                geom_histogram(aes(y=..count../sum(..count..))) +
-                geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
-                geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
-                xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                labs(title="Distribution of Mapped Reference End Position")
-
-valid_subtypes <- c('full', 'full-gap', 'left-partial', 'right-partial', 'wtITR-partial', 'mITR-partial', 'partial', 'backbone', 'vector+backbone')
-
-x.read.vector$subtype <- x.read.vector$assigned_subtype
-x.read.vector[!x.read.vector$subtype %in% valid_subtypes, "subtype"] <- 'other'
-
-p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
-                       geom_freqpoly() +
-                       xlab("Read length (bp)") +
-                       ylab("Count") +
-                       labs(title="Distribution of read length, scAAV, by subtype")
-
-p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x=read_len, color=subtype)) +
-                       geom_freqpoly() +
-                       xlab("Read length (bp)") +
-                       ylab("Count") +
-                       labs(title="Distribution of read length, ssAAV, by subtype")
-
-# ----------------------------------------------------
-# produce stats for repcap (if exists)
-# ----------------------------------------------------
-x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
-#x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
-x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
-
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-    p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) + geom_histogram(aes(y=..count../sum(..count..))) +
-                   xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
-                   labs(title="Repcap: Distribution of Mapped Reference Spanning Region Size")
-
-    p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
-                    geom_histogram(aes(y=..count../sum(..count..))) +
-                    geom_vline(xintercept=TARGET_REGION_START_REPCAP, color='red', lty=2) +
-                    xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
-                    labs(title="Repcap: Distribution of Mapped Reference Start Position")
-
-    p1.map_ends.repcap <- ggplot(x.summary.repcap, aes(map_end1, fill=map_subtype)) +
-                    geom_histogram(aes(y=..count../sum(..count..))) +
-                    geom_vline(xintercept=TARGET_REGION_END_REPCAP, color='red', lty=2) +
-                    xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
-                    labs(title="Repcap: Distribution of Mapped Reference End Position")
-}
-
-allowed_subtypes <- c('full', 'full-gap', 'vector+backbone')
-p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_subtypes), aes(x=paste(assigned_type, assigned_subtype,sep='-'), y=read_len)) +
-                    geom_violin() +
-                    xlab("Assigned AAV Type") + ylab("Read Length") +
-                    labs(title="Distribution of Read Lengths by Assigned AAV Type") +
-                    theme(axis.text.x=element_text(angle = -45, hjust = 0))
-
+               labs(title="Distribution of mapped identity to reference")
 
 p3.err_Ns <- ggplot(filter(df.err.vector,type=='gaps'), aes(x=pos0_div, y=count)) + geom_bar(fill='orange', stat='identity') +
               xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
@@ -213,22 +146,8 @@ p3.err_Ns <- ggplot(filter(df.err.vector,type=='gaps'), aes(x=pos0_div, y=count)
 p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(binwidth=100) +
                 xlab("Maximum large deletion size") + ylab("Number of Reads") +
                 labs(title="Distribution of biggest deletion for reads")
-
-# ----------------------------------------------------
-# produce stats for flip flop (if exists)
-# ----------------------------------------------------
-
-if (file.exists(params$flipflop_summary)) {
-    data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
-    df.flipflop <- data.flipflop %>% group_by(type, subtype, leftITR, rightITR) %>% summarise(count=n())
-    scff <- filter(df.flipflop, type=='scAAV')
-    ssff <- filter(df.flipflop, type=='ssAAV')
-}
 ```
 
-```{r saverdata, message=FALSE, warning=FALSE}
-#save.image(file = paste0(params$input_prefix, ".Rdata"))
-```
 
 `\pagebreak`{=latex}
 
@@ -254,10 +173,9 @@ chimeric     |Read consists of fragments that map to one or more “genomes” (
 * Note that even though ssAAV distinguishes one ITR as the wildtype (wtITR) and the other as the mutated ITR (mITR) we will still refer to them as leftITR vs rightITR (so using “left-partial” which in this case would be equivalent to saying “mITR-partial” since the mITR is the left IT based on the genomic coordinates given here).
 
 
-# Assigned Types By Read Alignment Characteristics
+# Assigned types by read alignment characteristics
 
-```{r render1, message=FALSE, warning=FALSE}
-valid_types <- c('ssAAV', 'scAAV', 'host', 'repcap', 'helper', 'lambda', 'unmapped', 'chimeric')
+```{r sopt1, message=FALSE, warning=FALSE}
 x.all.read[is.na(x.all.read$assigned_type), "assigned_type"] <- 'unmapped'
 x.all.read[grep("|", as.character(x.all.read$assigned_type), fixed=T), "assigned_type"] <- 'chimeric'
 x.all.read[!(x.all.read$assigned_type %in% valid_types), "assigned_type"] <- 'other'
@@ -270,26 +188,25 @@ total_read_count.all <- sum(x.all.read$effective_count) #dim(x.all.read)[1]
 df.read1 <- x.all.read %>% group_by(assigned_type) %>%
        summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
 df.read1 <- df.read1[order(-df.read1$freq),]
-df.read2 <- x.all.read %>% group_by(assigned_type, assigned_subtype) %>%
-       summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.all,2))
-df.read2 <- df.read2[order(-df.read2$freq),]
 
-table.atype1 <- tableGrob(df.read1, rows = NULL, cols = c("Assigned Type", "Count", "Frequency (%)"))
-title.atype1 <- textGrob("Assigned Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-gt.atype1 <- gTree(children=gList(title.atype1, table.atype1))
-grid.arrange(gt.atype1)
+flextable(df.read1) %>%
+  set_header_labels(values=c("Assigned Type", "Count", "Frequency (%)"))
 ```
 
-## Single-Stranded vs Self-Complementary Frequency
+```{r barpercentreads, message=FALSE, warning=FALSE}
+countreads <- df.read1 %>% dplyr::filter(assigned_type != 'Lambda')
 
-```{r render3, message=FALSE, warning=FALSE}
-# table.atype2 <- tableGrob(filter(df.read2,freq>=min_show_freq), rows = NULL,
-#                 cols = c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"),
-#                 theme=ttheme_minimal(base_size = 8))
-# title.atype2 <- textGrob("Assigned Types, detailed (>1% only)", gp=gpar(fontface="italic", fontsize=12), vjust=-18)
-# gt.atype2 <- gTree(children=gList(title.atype2, table.atype2))
-# grid.arrange(gt.atype2)
+# Bar chart
+ggplot(countreads,aes(x=assigned_type, y=freq, fill=assigned_type)) + geom_bar(stat='identity') + xlab("Sequence") + ylab("Percent of Reads")  +   theme_bw()
 
+# Pie chart
+ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="identity", width=1) +  coord_polar("y", start=0) + theme_void()
+```
+
+
+## Single-stranded vs self-complementary frequency
+
+```{r sopt2, message=FALSE, warning=FALSE}
 total_read_count.vector <- sum(x.read.vector$effective_count)
 df.read.vector1 <- x.read.vector %>% group_by(assigned_type) %>%
      summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
@@ -299,34 +216,39 @@ df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %
 df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
 df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>% filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>% select(e_count) %>% as.data.frame()
 total_ssaav <- sum(df.read.ssaav$e_count)
-table.atype.vector1 <- tableGrob(df.read.vector1, rows = NULL, cols = c("Assigned Type",  "Count", "Frequency (%)"))
-title.atype.vector1 <- textGrob("Assigned AAV Types By Read Alignment Characteristics, overview", gp=gpar(fontface="italic", fontsize=15), vjust=-18)
-gt.atype.vector1 <- gTree(children=gList(title.atype.vector1, table.atype.vector1))
-grid.arrange(gt.atype.vector1)
+
+flextable(df.read.vector1) %>%
+      set_header_labels(values=c("Assigned Type",  "Count", "Frequency (%)"))
 ```
 
 # Distribution of read lengths by assigned AAV types
 
-```{r render4, message=FALSE, warning=FALSE}
-grid.arrange(p2.atype_violin)
+```{r atypeviolin, message=FALSE, warning=FALSE}
+allowed_subtypes <- c('full', 'full-gap', 'vector+backbone')
+
+p2.atype_violin <-ggplot(filter(x.read.vector, assigned_subtype %in% allowed_subtypes),
+                         aes(x=paste(assigned_type, assigned_subtype,sep='-'),
+                             y=read_len)) +
+                    geom_violin() +
+                    xlab("Assigned AAV Type") + ylab("Read Length") +
+                    labs(title="Distribution of read lengths by assigned AAV type") +
+                    theme(axis.text.x=element_text(angle = -45, hjust = 0))
+
+p2.atype_violin
 ```
 
 # Assigned AAV read types detailed analysis
 
-## Assigned AAV Types
+## Assigned AAV types (top 20)
 
-```{r render5, message=FALSE, warning=FALSE}
-table.atype.vector2 <- tableGrob(df.read.vector2[1:20,], rows = NULL,
-                     cols = c("Assigned Type, detailed", "Assigned Subtype", "Count", "Frequency (%)"),
-                     theme=ttheme_minimal(base_size = 8))
-title.atype.vector2 <- textGrob("Assigned AAV Types, detailed (top 20 only)", gp=gpar(fontface="italic", fontsize=12), vjust=-24)
-gt.atype.vector2 <- gTree(children=gList(title.atype.vector2, table.atype.vector2))
-grid.arrange(gt.atype.vector2)
+```{r sopt3, message=FALSE, warning=FALSE}
+flextable(df.read.vector2[1:20,]) %>%
+      set_header_labels(values=c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"))
 ```
 
-### Definitions
+## Definitions
 
-Assigned SubType|Definition
+Assigned Subtype|Definition
 ---------------:|----------------------------------------------------------------
 full            |Read consists of a DNA sequence which includes the entire ITR-to-ITR target vector sequence. Read is present in both (+) and (-) polarities.
 left-partial    |Read consists of a fragment of the vector originating from the upstream (left ITR) of the vector while not covering the right ITR. Read is present in both (+) and (-) polarities.
@@ -336,140 +258,200 @@ vector+backbone |Read consists of a fragment including the vector as well as pla
 backbone        |Read consists of a fragment originating solely from the plasmid backbone sequence. Read is present in both (+) and (-) polarities.
 
 
-# Flip/Flop considerations
+# Flip/flop considerations
 
-## Flip/Flop configurations, scAAV only
+Term|Definition
+---:|----------------
+Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', embedded in a larger one, A–A'. The order of these palindromic sequences defines the flip or flop orientation of the ITR.
 
-```{r render6, message=FALSE, warning=FALSE}
-### flip flop configurations (if applicable)
+
+```{r flipflopplot, message=FALSE, warning=FALSE, results='asis'}
+# Calculate stats and generate plot for flip/flop analysis (if available)
 if (file.exists(params$flipflop_summary)) {
-numssff <- sum(ssff$count)
-if (is.numeric(numssff) & is.numeric(total_ssaav)) {
-  if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
-    ssff <-  ssff %>% mutate(count=count*2)
-  }else {
-    ssff <-  ssff %>% mutate(count=count)
+  data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
+  df.flipflop <- data.flipflop %>%
+      group_by(type, subtype, leftITR, rightITR) %>%
+      summarise(count=n())
+  scff <- filter(df.flipflop, type=='scAAV')
+  ssff <- filter(df.flipflop, type=='ssAAV')
+
+  # Double single-stranded counts if appropriate
+  numssff <- sum(ssff$count)
+  if (is.numeric(numssff) & is.numeric(total_ssaav)) {
+    if (total_ssaav > 0 & numssff > 0 & numssff*2 == total_ssaav) {
+      ssff <-  ssff %>% mutate(count=count*2)
+    } else {
+      ssff <-  ssff %>% mutate(count=count)
+    }
   }
-}
-fftbl <- bind_rows(scff,ssff)
-write_tsv(fftbl,str_c(c(params$input_prefix,".flipflop.tsv"), collapse = ""))
-if (nrow(scff) > 1) {
-  table.sc.flipflop <- tableGrob(scff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-  title.sc.flipflop <- textGrob("Flip/Flop configurations, scAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-  gt.sc.flipflop <- gTree(children=gList(title.sc.flipflop, table.sc.flipflop))
-  grid.arrange(gt.sc.flipflop)
-}
+  # Write TSV of flip flop configurations
+  fftbl <- bind_rows(scff, ssff)
+  write_tsv(fftbl,str_c(c(params$input_prefix,".flipflop.tsv"), collapse = ""))
+
+  # Generate flip/flop summary plot
+  ffplot <- df.flipflop %>%
+      mutate(class=if_else(leftITR == 'unclassified' | rightITR == 'unclassified' | leftITR == 'unknown' | rightITR == 'unknown',
+                           "unclassifed",
+                           paste(leftITR, rightITR, sep='-'))) %>%
+      group_by(type, subtype, class) %>%
+      summarize(classct=sum(count)) %>%
+      filter(subtype == 'vector-full')
+  ggplot(ffplot, aes(x=type,y=classct,fill = class)) +
+    geom_bar(stat='identity') +
+    labs(x='Assigned Type', y='Number of Reads') +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank())
+
 } else {
-  print("n/a")
+  cat("No flip/flop analysis results available to display.")
 }
 ```
 
 
-## Flip/Flop configurations, ssAAV only
+## Flip/flop configurations, scAAV only
 
-```{r render7, message=FALSE, warning=FALSE}
-if (file.exists(params$flipflop_summary)) {
-if (nrow(ssff) > 1) {
-  table.ss.flipflop <- tableGrob(ssff, rows=NULL, cols=c("type","subtype","leftITR","rightITR","count"))
-  title.ss.flipflop <- textGrob("Flip/Flop configurations, ssAAV only", gp=gpar(fontface="italic", fontsize=15), vjust=-20)
-  gt.ss.flipflop <- gTree(children=gList(title.ss.flipflop, table.ss.flipflop))
-  grid.arrange(gt.ss.flipflop)
-}
+```{r flipflopsc, message=FALSE, warning=FALSE}
+if (exists("scff") & (nrow(scff) > 1)) {
+  flextable(scff) %>%
+    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
-  print("n/a")
+  cat("No scAAV flip/flop analysis results available to display.")
+}
+```
+
+
+## Flip/flop configurations, ssAAV only
+
+```{r flipflopss, message=FALSE, warning=FALSE}
+if (exists("ssff") & (nrow(ssff) > 1)) {
+  flextable(ssff) %>%
+    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
+} else {
+  cat("No ssAAV flip/flop analysis results available to display.")
 }
 ```
 
 
 # Distribution of read length by subtype
 
-## Distribution of scAAV read length by subtype
+```{r lenhisto2_subtype, message=FALSE, warning=FALSE}
+# scAAV length histogram
+p1.scAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='scAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of scAAV read length by subtype")
 
-```{r render8, message=FALSE, warning=FALSE}
-### scAAV and ssAAV length histogram
-grid.arrange(p1.scAAV_len_hist)
+# ssAAV length histogram
+p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x=read_len, color=subtype)) +
+                       geom_freqpoly() +
+                       xlab("Read length (bp)") +
+                       ylab("Count") +
+                       labs(title="Distribution of ssAAV read length by subtype")
+
+p1.scAAV_len_hist
+p1.ssAAV_len_hist
 ```
 
-## Distribution of ssAAV read length by subtype
+# AAV mapping to reference sequence
 
-```{r render9, message=FALSE, warning=FALSE}
-grid.arrange(p1.ssAAV_len_hist)
+## Gene therapy construct
+
+```{r lenhisto2_construct, message=FALSE, warning=FALSE}
+p1.map_starts <- ggplot(x.summary.vector, aes(map_start0+1, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
+    geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
+    xlab("Mapped Reference Start Position") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped read starts on construct")
+
+p1.map_ends <- ggplot(x.summary.vector, aes(map_end1, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    geom_vline(xintercept=TARGET_REGION_START, color='red', lty=2) +
+    geom_vline(xintercept=TARGET_REGION_END, color='red', lty=2) +
+    xlab("Mapped Reference End Position") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped read ends on construct")
+
+p1.map_len <- ggplot(x.summary.vector, aes(map_len, fill=map_subtype)) +
+    geom_histogram(aes(y=..count../sum(..count..))) +
+    xlab("Mapped Reference Length") +
+    ylab("Fraction of Reads") +
+    labs(title="Distribution of mapped spanning region sizes on construct")
+
+p1.map_starts
+p1.map_ends
+p1.map_len
 ```
 
-# AAV Mapping to Reference Sequence
+<!-- optional RepCap section -->
 
-## Gene Therapy Construct
+```{r lenhisto2_rc, message=FALSE, warning=FALSE, results='asis'}
+# Produce stats for repcap (if exists)
 
-### Distribution of Mapped Reference Start Position
+x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
+#x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
+x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
 
-```{r render10, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_starts)
-```
+# Only render this subsection if at enough reads mapped to repcap
+if (dim(x.read.repcap)[1] > 10) {
+  # Subsection heading in Markdown
+  cat("## RepCap\n\n")
 
-### Distribution of Mapped Reference End Position
+  p1.map_starts.repcap <- ggplot(x.summary.repcap, aes(map_start0+1, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      geom_vline(xintercept=TARGET_REGION_START_REPCAP, color='red', lty=2) +
+      xlab("Mapped Reference Start Position") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped read starts on RepCap")
 
-```{r render11, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_ends)
-```
+  p1.map_ends.repcap <- ggplot(x.summary.repcap, aes(map_end1, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      geom_vline(xintercept=TARGET_REGION_END_REPCAP, color='red', lty=2) +
+      xlab("Mapped Reference End Position") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped read ends on RepCap")
 
-### Distribution of Mapped Reference Spanning Region Size
+  p1.map_len.repcap <- ggplot(x.summary.repcap, aes(map_len, fill=map_subtype)) +
+      geom_histogram(aes(y=..count../sum(..count..))) +
+      xlab("Mapped Reference Length") + ylab("Fraction of Reads") +
+      labs(title="Distribution of mapped spanning region sizes on RepCap")
 
-```{r render12, message=FALSE, warning=FALSE}
-grid.arrange(p1.map_len)
-```
-
-## RepCap
-
-### Distribution of Mapped Reference Start Position
-
-```{r render13, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_starts.repcap)
-} else {
-  print("n/a")
+  p1.map_starts.repcap
+  p1.map_ends.repcap
+  p1.map_len.repcap
 }
 ```
 
-### Distribution of Mapped Reference End Position
 
-```{r render14, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_ends.repcap)
-} else {
-  print("n/a")
-}
+# Distribution of non-matches by reference position
 
-```
+```{r varplots, message=FALSE, warning=FALSE}
+p1.err_sub <- ggplot(filter(df.err.vector,type=='mismatch'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkgreen', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Substitutions by reference position",
+         subtitle="Higher bars indicate hot spots for substitutions w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-### Distribution of Mapped Reference Spanning Region Size
+p1.err_del <- ggplot(filter(df.err.vector,type=='deletion'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkred', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Deletions by reference position",
+         subtitle="Higher bars indicate hot spots for deletion w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-```{r render15, message=FALSE, warning=FALSE}
-if (dim(x.read.repcap)[1] > 10) { # only plot if at least 10 reads
-  grid.arrange(p1.map_len.repcap)
-} else {
-  print("n/a")
-}
+p1.err_ins <- ggplot(filter(df.err.vector,type=='insertion'), aes(x=pos0_div, y=count)) +
+    geom_bar(fill='darkblue', stat='identity') +
+    xlim(c(TARGET_REGION_START, TARGET_REGION_END)) +
+    labs(title="Insertions by reference position",
+         subtitle="Higher bars indicate hot spots for insertion w.r.t reference") +
+    xlab("Reference Position") + ylab("Frequency")
 
-```
-
-# Distribution of Non-matches by Reference Position
-
-## Substitutions
-
-```{r render16, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_sub)
-```
-
-## Deletions
-
-```{r render17, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_del)
-```
-
-## Insertions
-
-```{r render18, message=FALSE, warning=FALSE}
-grid.arrange(p1.err_ins)
+p1.err_sub
+p1.err_del
+p1.err_ins
 ```
 
 
@@ -486,3 +468,8 @@ Finally, a custom report of alignment statistics is generated in HTML or PDF for
 
 1. Travers, K. J., Chin, C.-S., Rank, D. R., Eid, J. S. & Turner, S. W. A flexible and efficient template format for circular consensus sequencing and SNP detection. Nucleic Acids Research 38, e159–e159 (2010).
 2. Li, H. Minimap2: Pairwise alignment for nucleotide sequences. Bioinformatics 34, 3094–3100 (2018).
+
+
+```{r saverdata, message=FALSE, warning=FALSE}
+#save.image(file = paste0(params$input_prefix, ".Rdata"))
+```
