@@ -262,12 +262,13 @@ flextable(df.read.vector2[1:20,]) %>%
 
 Assigned Subtype|Definition
 ---------------:|----------------------------------------------------------------
-full            |Read consists of a DNA sequence which includes the entire ITR-to-ITR target vector sequence. Read is present in both (+) and (-) polarities.
-left-partial    |Read consists of a fragment of the vector originating from the upstream (left ITR) of the vector while not covering the right ITR. Read is present in both (+) and (-) polarities.
-right-partial   |Read consists of a fragment of the vector originating from the downstream (right ITR) of the vector while not covering the left ITR. Read is present in both (+) and (-) polarities.
-partial         |Read consists of a fragment of the vector originating from within the ITR sequences. Read is present in both (+) and (-) polarities.
-vector+backbone |Read consists of a fragment including the vector as well as plasmid backbone sequence. Read is present in both (+) and (-) polarities.
-backbone        |Read consists of a fragment originating solely from the plasmid backbone sequence. Read is present in both (+) and (-) polarities.
+full            |Read alignment includes the entire ITR-to-ITR target vector sequence.
+left-partial    |Read aligns to a fragment of the vector originating from the left (upstream) ITR of the vector while not covering the right ITR.
+right-partial   |Read aligns to a fragment of the vector originating from the right (downstream) ITR of the vector while not covering the left ITR.
+partial         |Read aligns to a fragment of the vector originating from within the ITR sequences.
+vector+backbone |Read aligns to a fragment including the vector as well as plasmid backbone sequence.
+backbone        |Read aligns to a fragment originating solely from the plasmid backbone sequence.
+snapback        |Read consists of a double-stranded, sub-genomic fragment including only one ITR and read alignments in both (+) and (-) polarities. (ssAAV only)
 
 
 # Flip/flop considerations
