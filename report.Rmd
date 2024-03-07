@@ -149,29 +149,41 @@ p3.err_size_Ns <- ggplot(df.read_stat_N, aes(max_del_size)) + geom_histogram(bin
 ```
 
 
-`\pagebreak`{=latex}
+`\newpage`{=latex}
 
 # Read type classification
-
-![Single-stranded AAV types (ssAAV)](static/class_def_ssAAV.png)
-
-![Self-complementary AAV types (scAAV)](static/class_def_scAAV.png)
-
 
 ## Definitions
 
 Assigned Type|Definition
 ------------:|----------------------------------------------------
-scAAV        |A read is self-complementary (scAAV) if it has both a primary and supplementary alignment to the vector genome.
-ssAAV        |Read mapping to the AAV genome and is not self-complementary.
-other        |Read consists of a fragment mapping to the vector but with unexpected polarities (e.g. +,-,- or +,+,+) and cannot be well-defined at the moment. Usually this means there are multiple supplementary alignments on the vector region or and it’s a weird molecule.
+scAAV        |Self-complementary AAV where one half of the payload region is a reverse complement of the other, resulting in an intra-molecular double-stranded DNA template. A sequencing read is inferred as scAAV if it has both a primary and supplementary alignment to the vector genome.
+ssAAV        |AAV where the resulting DNA template is expected to be single-stranded, as opposed to self-complementary. A sequencing read is inferred as ssAAV if it has a single alignment to the AAV genome and no complementary secondary alignment.
+other        |Read consists of a fragment mapping to the vector but with unexpected polarities (e.g. +,-,- or +,+,+) and cannot be well-defined at the moment. This means that the algorithm was not able to distinguish the read either as ssAAV or scAAV by the definitions above. Usually this means there are multiple supplementary alignments on the vector region and/or it’s a weird molecule.
 host         |Read originates from the host genome that is given (e.g. hg38, CHM13).
 repcap       |Read originates from the repcap plasmid. The Rep gene encodes four proteins (Rep78, Rep68, Rep52, and Rep40), which are required for viral genome replication and packaging, while Cap expression gives rise to the viral capsid proteins (VP; VP1/VP2/VP3), which form the outer capsid shell that protects the viral genome, as well as being actively involved in cell binding and internalization.
 helper       |Read originates from the helper plasmid. In addition to Rep and Cap, AAV requires a helper plasmid containing genes from adenovirus. These genes (E4, E2a and VA) mediate AAV replication.
-chimeric     |Read consists of fragments that map to one or more “genomes” (e.g. vector and host; helper and repcap)
+chimeric     |Read consists of fragments that map to one or more "genomes" (e.g. vector and host; helper and repcap).
 
-* Note that even though ssAAV distinguishes one ITR as the wildtype (wtITR) and the other as the mutated ITR (mITR) we will still refer to them as leftITR vs rightITR (so using “left-partial” which in this case would be equivalent to saying “mITR-partial” since the mITR is the left IT based on the genomic coordinates given here).
+*Note:* Even though ssAAV distinguishes one ITR as the wildtype (wtITR) and the other as the mutated ITR (mITR), we will still refer to them as "left ITR" and "right ITR". For example, "left-partial" would be equivalent to "mITR-partial" in the case where the mITR is the left ITR based on the given genomic coordinates.
 
+`<br />`{=html}
+
+![Single-stranded AAV types (ssAAV).
+ssAAV reads must fully map within the vector genome (which can contain the backbone, beyond the ITR region) consisting of a single (primary) alignment.
+"ssAAV-full" reads must cover from left ITR to right ITR.
+"ssAAV-left-partial" contain the left ITR but are missing the right ITR.
+"scAAV-vector+backbone" map partially within the ITR and partially to the backbone.
+](static/class_def_ssAAV.png)
+
+`<br />`{=html}
+
+![Self-complementary AAV types (scAAV).
+scAAV reads must fully map within the vector genome (which can contain the backbone, beyond the ITR region) consisting of both primary and supplementary alignments.
+The definitions of full, partial, and backbone reads are the same as in ssAAV.
+](static/class_def_scAAV.png)
+
+`\break`{=latex}
 
 # Assigned types by read alignment characteristics
 
@@ -262,7 +274,7 @@ backbone        |Read consists of a fragment originating solely from the plasmid
 
 Term|Definition
 ---:|----------------
-Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', embedded in a larger one, A–A'. The order of these palindromic sequences defines the flip or flop orientation of the ITR.
+Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', embedded in a larger one, A–A'. The order of these palindromic sequences defines the flip or flop orientation of the ITR. ([Read more](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5655423/))
 
 
 ```{r flipflopplot, message=FALSE, warning=FALSE, results='asis'}
@@ -354,6 +366,7 @@ p1.ssAAV_len_hist <- ggplot(filter(x.read.vector, assigned_type=='ssAAV'), aes(x
 p1.scAAV_len_hist
 p1.ssAAV_len_hist
 ```
+
 
 # AAV mapping to reference sequence
 
