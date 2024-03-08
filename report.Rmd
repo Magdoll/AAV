@@ -221,16 +221,14 @@ ggplot(countreads, aes(x="", y=e_count, fill=assigned_type)) +  geom_bar(stat="i
 ```{r sopt2, message=FALSE, warning=FALSE}
 total_read_count.vector <- sum(x.read.vector$effective_count)
 df.read.vector1 <- x.read.vector %>% group_by(assigned_type) %>%
-     summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
+        summarise(e_count=sum(effective_count)) %>%
+        mutate(freq=round(e_count*100/total_read_count.vector,2))
 df.read.vector1 <- df.read.vector1[order(-df.read.vector1$freq),]
-df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
-     summarise(e_count=sum(effective_count)) %>% mutate(freq=round(e_count*100/total_read_count.vector,2))
-df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
-df.read.ssaav <-  dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>% filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>% select(e_count) %>% as.data.frame()
-total_ssaav <- sum(df.read.ssaav$e_count)
+sopt2 <- df.read.vector1 %>%
+        mutate(totfreq=round(100*e_count/total_read_count.all, 2))
 
-flextable(df.read.vector1) %>%
-      set_header_labels(values=c("Assigned Type",  "Count", "Frequency (%)"))
+flextable(sopt2) %>%
+      set_header_labels(values=c("Assigned Type", "Count", "Frequency in AAV (%)", "Total Frequency (%)"))
 ```
 
 # Distribution of read lengths by assigned AAV types
@@ -254,8 +252,18 @@ p2.atype_violin
 ## Assigned AAV types (top 20)
 
 ```{r sopt3, message=FALSE, warning=FALSE}
-flextable(df.read.vector2[1:20,]) %>%
-      set_header_labels(values=c("Assigned Type", "Assigned Subtype", "Count", "Frequency (%)"))
+df.read.vector2 <- x.read.vector %>% group_by(assigned_type, assigned_subtype) %>%
+        summarise(e_count=sum(effective_count)) %>%
+        mutate(freq=round(e_count*100/total_read_count.vector,2))
+df.read.vector2 <- df.read.vector2[order(-df.read.vector2$freq),]
+sopt3 <- df.read.vector2 %>%
+        mutate(totfreq=round(100*e_count/total_read_count.all, 2)) %>%
+        arrange(factor(assigned_type, levels = valid_types),
+                factor(assigned_subtype, levels = valid_subtypes))
+
+flextable(sopt3[1:20,]) %>%
+      set_header_labels(values=c("Assigned Type", "Assigned Subtype", "Count",
+                                 "Freq. in AAV (%)", "Total Freq. (%)"))
 ```
 
 ## Definitions
@@ -279,6 +287,12 @@ Flip/Flop|One ITR is formed by two palindromic arms, called B–B' and C–C', e
 
 
 ```{r flipflopplot, message=FALSE, warning=FALSE, results='asis'}
+df.read.ssaav <- dplyr::filter(df.read.vector2,assigned_type=='ssAAV') %>%
+        filter(assigned_subtype=='full' | assigned_subtype=='right-partial'| assigned_subtype=='left-partial') %>%
+        select(e_count) %>%
+        as.data.frame()
+total_ssaav <- sum(df.read.ssaav$e_count)
+
 # Calculate stats and generate plot for flip/flop analysis (if available)
 if (file.exists(params$flipflop_summary)) {
   data.flipflop <- read.table(params$flipflop_summary,sep='\t',header=T)
