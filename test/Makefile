@@ -23,36 +23,39 @@ clean:
 	rm -vf $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
 
 
-$(ss_inputs)/2022ssAAV_AAV_report.pdf: ../plotAAVreport.R
-	Rscript $< $(ss_inputs)/2022ssAAV $(ss_inputs)/annotation.txt
+$(out_ss_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd
+	$< $(out_ss_pfx) $(ss_inputs)/annotation.txt pAV-CMV-GFP $(out_ss_pfx).flipflop_assignments.txt
+
+$(out_ss_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(ss_inputs)/2022ssaav.tagged.sorted.bam $(ss_inputs)/2022ssaav.per_read.csv
+	$^ -o $(out_ss_pfx)
+
+$(out_ss_pfx).per_read.csv: ../bin/summarize_AAV_alignment.py $(ss_inputs)/mapped.sort_by_read.sam $(ss_inputs)/annotation.txt
+	$^ $(out_ss_pfx) --cpus 4
+
+
+$(out_sc_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd
+	$< $(out_sc_pfx) $(sc_inputs)/annotation.txt CBA-eGFP $(out_sc_pfx).flipflop_assignments.txt
+
+$(out_sc_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(sc_inputs)/scAAV_bc1009.tagged.sorted.bam $(sc_inputs)/scAAV_bc1009.per_read.csv
+	$^ -o $(out_sc_pfx)
+
+$(out_sc_pfx).per_read.csv: ../bin/summarize_AAV_alignment.py $(sc_inputs)/mapped.sort_by_read.sam $(sc_inputs)/annotation.txt
+	$^ $(out_sc_pfx) --cpus 4
+
+
+# Legacy report
 
 $(out_ss_pfx)_AAV_report.pdf: ../plotAAVreport.R
 	Rscript $< $(out_ss_pfx) $(ss_inputs)/annotation.txt
 
-$(out_ss_pfx)_AAV_report.html: ../create_report.R ../report.Rmd
-	Rscript $< $(out_ss_pfx) $(ss_inputs)/annotation.txt pAV-CMV-GFP $(out_ss_pfx).flipflop_assignments.txt
-
-$(out_ss_pfx).flipflop_assignments.txt: ../get_flipflop_config.py $(ss_inputs)/2022ssaav.tagged.sorted.bam $(ss_inputs)/2022ssaav.per_read.csv
-	python3 $^ -o $(out_ss_pfx)
-
-$(out_ss_pfx).per_read.csv: ../summarize_aav_alignment.py $(ss_inputs)/mapped.sort_by_read.sam $(ss_inputs)/annotation.txt
-	python3 $^ $(out_ss_pfx) --cpus 4
-
-
-$(sc_inputs)/scAAV_bc1009_AAV_report.pdf: ../plotAAVreport.R
-	Rscript $< $(sc_inputs)/scAAV_bc1009 $(sc_inputs)/annotation.txt
-
 $(out_sc_pfx)_AAV_report.pdf: ../plotAAVreport.R
 	Rscript $< $(out_sc_pfx) $(sc_inputs)/annotation.txt
 
-$(out_sc_pfx)_AAV_report.html: ../create_report.R ../report.Rmd
-	Rscript $< $(out_sc_pfx) $(sc_inputs)/annotation.txt CBA-eGFP $(out_sc_pfx).flipflop_assignments.txt
+$(ss_inputs)/2022ssAAV_AAV_report.pdf: ../plotAAVreport.R
+	Rscript $< $(ss_inputs)/2022ssAAV $(ss_inputs)/annotation.txt
 
-$(out_sc_pfx).flipflop_assignments.txt: ../get_flipflop_config.py $(sc_inputs)/scAAV_bc1009.tagged.sorted.bam $(sc_inputs)/scAAV_bc1009.per_read.csv
-	python3 $^ -o $(out_sc_pfx)
-
-$(out_sc_pfx).per_read.csv: ../summarize_aav_alignment.py $(sc_inputs)/mapped.sort_by_read.sam $(sc_inputs)/annotation.txt
-	python3 $^ $(out_sc_pfx) --cpus 4
+$(sc_inputs)/scAAV_bc1009_AAV_report.pdf: ../plotAAVreport.R
+	Rscript $< $(sc_inputs)/scAAV_bc1009 $(sc_inputs)/annotation.txt
 
 
 # Download example input data from PacBio
