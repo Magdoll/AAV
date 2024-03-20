@@ -16,7 +16,7 @@ RUN conda env create -v -f conda_env.yml
 RUN echo "conda activate AAV.env" >> ~/.bashrc
 
 # Executable scripts for the pipeline
-COPY *.py *.R /usr/local/bin
+COPY bin/* /usr/local/bin
 RUN chmod +x /usr/local/bin/*.py /usr/local/bin/*.R
 ENV PATH "/usr/local/bin:$PATH"
 
