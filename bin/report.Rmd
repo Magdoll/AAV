@@ -174,14 +174,14 @@ ssAAV reads must fully map within the vector genome (which can contain the backb
 "ssAAV-full" reads must cover from left ITR to right ITR.
 "ssAAV-left-partial" contain the left ITR but are missing the right ITR.
 "scAAV-vector+backbone" map partially within the ITR and partially to the backbone.
-](../static/class_def_ssAAV.png)
+](class_def_ssAAV.png)
 
 `<br />`{=html}
 
 ![Self-complementary AAV types (scAAV).
 scAAV reads must fully map within the vector genome (which can contain the backbone, beyond the ITR region) consisting of both primary and supplementary alignments.
 The definitions of full, partial, and backbone reads are the same as in ssAAV.
-](../static/class_def_scAAV.png)
+](class_def_scAAV.png)
 
 `\break`{=latex}
 
@@ -502,5 +502,5 @@ according to the definitions above.
 
 
 ```{r saverdata, message=FALSE, warning=FALSE}
-save.image(file = paste0(params$input_prefix, ".Rdata"))
+#save.image(file = paste0(params$input_prefix, ".Rdata"))
 ```
