@@ -1,4 +1,4 @@
-# AAV
+# LAAVA: Long-read AAV Analysis
 
 
 ## Installation
@@ -9,7 +9,7 @@ You can directly download/clone the repo to use the scripts directly.
 $ git clone https://github.com/formbio/AAV.git
 ```
 
-You can install the dependencies on your own or use one of the following conda-based options.
+You can install the dependencies on your own or use one of the following options.
 
 ### Option 1: Conda
 
