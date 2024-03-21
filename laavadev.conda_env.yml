@@ -1,4 +1,4 @@
-name: AAV.dev.env
+name: laavadev
 channels:
     - conda-forge
     - bioconda
