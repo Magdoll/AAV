@@ -340,7 +340,7 @@ if (file.exists(params$flipflop_summary)) {
 ## Flip/flop configurations, scAAV only
 
 ```{r flipflopsc, message=FALSE, warning=FALSE}
-if (exists("scff") & (nrow(scff) > 1)) {
+if (exists("scff") && (nrow(scff) > 1)) {
   flextable(scff) %>%
     set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
@@ -352,7 +352,7 @@ if (exists("scff") & (nrow(scff) > 1)) {
 ## Flip/flop configurations, ssAAV only
 
 ```{r flipflopss, message=FALSE, warning=FALSE}
-if (exists("ssff") & (nrow(ssff) > 1)) {
+if (exists("ssff") && (nrow(ssff) > 1)) {
   flextable(ssff) %>%
     set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
 } else {
