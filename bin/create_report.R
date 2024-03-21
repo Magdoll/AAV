@@ -14,14 +14,6 @@ if (length(args) > 3) {
     flipflop_summary = args[4]
 }
 
-input_params = list(
-    input_prefix = input_prefix,
-    annot_filename = annot_filename,
-    sample_id = sample_id,
-    flipflop_summary = flipflop_summary)
-message("Parameters:")
-print(input_params)
-
 rmd_dir = dirname(sub("--file=", "", commandArgs(trailingOnly=FALSE)[4]))
 rmd_path = paste0(rmd_dir, "/report.Rmd")
 message(paste("Report template location:", rmd_path, sep=" "))
@@ -30,6 +22,14 @@ out_path = paste0(input_prefix, "_AAV_report")  # Adds .html and .pdf automatica
 out_dir = dirname(out_path)
 out_filename = basename(out_path)
 message(paste("Output location:", out_path, sep=" "))
+
+input_params = list(
+    input_prefix = input_prefix,
+    annot_filename = annot_filename,
+    sample_id = sample_id,
+    flipflop_summary = flipflop_summary)
+message("Parameters:")
+print(input_params)
 
 rmarkdown::render(
     rmd_path,
