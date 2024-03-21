@@ -33,19 +33,19 @@ jobs:
       - name: Cache conda
         uses: actions/cache@v3
         env:
-          # Increase this value to reset cache if AAV.conda_env.yml has not changed
+          # Increase this value to reset cache if laava.conda_env.yml has not changed
           CACHE_NUMBER: 0
         with:
           path: ~/conda_pkgs_dir
           key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('AAV.conda_env.yml') }}
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('laava.conda_env.yml') }}
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: AAV.env
           auto-activate-base: false
           auto-update-conda: true
           channel-priority: strict
-          environment-file: AAV.conda_env.yml
+          environment-file: laava.conda_env.yml
           python-version: ${{ matrix.python }}
           use-only-tar-bz2: true  # Required for caching
       - name: Show conda environment
