@@ -4,10 +4,12 @@ sc_inputs = CBA-eGFP
 ss_inputs = CMV-GFP
 out_sc_pfx = build/scAAV
 out_ss_pfx = build/ssAAV
+small_inputs = small
+out_small_pfx = build/small
 
 
 .PSEUDO: fast slow clean
-fast: $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
+fast: $(out_small_pfx)_AAV_report.html
 
 slow: \
 	$(out_sc_pfx).per_read.csv \
@@ -20,7 +22,17 @@ slow: \
 
 clean:
 	#rm -vf build/*
-	rm -vf $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
+	rm -vf $(out_small_pfx)_AAV_report.html $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
+
+
+$(out_small_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd $(out_small_pfx).flipflop_assignments.txt
+	$< $(out_small_pfx) $(sc_inputs)/annotation.txt pAV-CMV-GFP $(out_small_pfx).flipflop_assignments.txt
+
+$(out_small_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(out_small_pfx).tagged.bam $(out_small_pfx).per_read.csv
+	$^ -o $(out_small_pfx)
+
+$(out_small_pfx).tagged.bam: ../bin/summarize_AAV_alignment.py $(small_inputs)/scaav-cba-egfp.bam $(sc_inputs)/annotation.txt
+	$^ $(out_small_pfx) --cpus 4
 
 
 $(out_ss_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd

@@ -1,8 +1,10 @@
-*.bam
 *.bai
 *.gz
+*.sam
 .nextflow.log*
 .nextflow/
 nextflow_logs/
+test/CBA-eGFP/*.bam
+test/CMV-GFP/*.bam
 test/build/
 workflow-outputs/
