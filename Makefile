@@ -1,5 +1,5 @@
 # Build Docker images
-all: laava laavadev laavanf
+all: laava laava_dev laava_nf
 
-laava laavadev laavanf: %: %.dockerfile laava.conda_env.yml
-	docker build -t $@:latest -f $< .
+laava laava_dev laava_nf: %: %.dockerfile laava.conda_env.yml
+	docker build -t ghcr.io/formbio/$@:latest -f $< .

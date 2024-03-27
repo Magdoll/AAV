@@ -6,6 +6,7 @@ RUN apt-get update \
         apt-transport-https \
         ca-certificates \
         less \
+        samtools \
         texlive-latex-extra \
         texlive-latex-recommended \
     && rm -rf /var/lib/apt/lists/*
