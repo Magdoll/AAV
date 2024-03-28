@@ -25,33 +25,33 @@ clean:
 	rm -vf $(out_small_pfx)_AAV_report.html $(out_sc_pfx)_AAV_report.html $(out_ss_pfx)_AAV_report.html
 
 
-$(out_small_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd $(out_small_pfx).flipflop_assignments.txt
+$(out_small_pfx)_AAV_report.html: ../src/create_report.R ../src/report.Rmd $(out_small_pfx).flipflop_assignments.txt
 	$< $(out_small_pfx) $(sc_inputs)/annotation.txt pAV-CMV-GFP $(out_small_pfx).flipflop_assignments.txt
 
-$(out_small_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(out_small_pfx).tagged.bam $(out_small_pfx).per_read.csv
+$(out_small_pfx).flipflop_assignments.txt: ../src/get_flipflop_config.py $(out_small_pfx).tagged.bam $(out_small_pfx).per_read.csv
 	$^ -o $(out_small_pfx)
 
-$(out_small_pfx).tagged.bam: ../bin/summarize_AAV_alignment.py $(small_inputs)/scaav-cba-egfp.bam $(sc_inputs)/annotation.txt
+$(out_small_pfx).tagged.bam: ../src/summarize_AAV_alignment.py $(small_inputs)/scaav-cba-egfp.bam $(sc_inputs)/annotation.txt
 	$^ $(out_small_pfx) --cpus 4
 
 
-$(out_ss_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd
+$(out_ss_pfx)_AAV_report.html: ../src/create_report.R ../src/report.Rmd
 	$< $(out_ss_pfx) $(ss_inputs)/annotation.txt pAV-CMV-GFP $(out_ss_pfx).flipflop_assignments.txt
 
-$(out_ss_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(ss_inputs)/2022ssaav.tagged.sorted.bam $(ss_inputs)/2022ssaav.per_read.csv
+$(out_ss_pfx).flipflop_assignments.txt: ../src/get_flipflop_config.py $(ss_inputs)/2022ssaav.tagged.sorted.bam $(ss_inputs)/2022ssaav.per_read.csv
 	$^ -o $(out_ss_pfx)
 
-$(out_ss_pfx).per_read.csv: ../bin/summarize_AAV_alignment.py $(ss_inputs)/mapped.sort_by_read.sam $(ss_inputs)/annotation.txt
+$(out_ss_pfx).per_read.csv: ../src/summarize_AAV_alignment.py $(ss_inputs)/mapped.sort_by_read.sam $(ss_inputs)/annotation.txt
 	$^ $(out_ss_pfx) --cpus 4
 
 
-$(out_sc_pfx)_AAV_report.html: ../bin/create_report.R ../bin/report.Rmd
+$(out_sc_pfx)_AAV_report.html: ../src/create_report.R ../src/report.Rmd
 	$< $(out_sc_pfx) $(sc_inputs)/annotation.txt CBA-eGFP $(out_sc_pfx).flipflop_assignments.txt
 
-$(out_sc_pfx).flipflop_assignments.txt: ../bin/get_flipflop_config.py $(sc_inputs)/scAAV_bc1009.tagged.sorted.bam $(sc_inputs)/scAAV_bc1009.per_read.csv
+$(out_sc_pfx).flipflop_assignments.txt: ../src/get_flipflop_config.py $(sc_inputs)/scAAV_bc1009.tagged.sorted.bam $(sc_inputs)/scAAV_bc1009.per_read.csv
 	$^ -o $(out_sc_pfx)
 
-$(out_sc_pfx).per_read.csv: ../bin/summarize_AAV_alignment.py $(sc_inputs)/mapped.sort_by_read.sam $(sc_inputs)/annotation.txt
+$(out_sc_pfx).per_read.csv: ../src/summarize_AAV_alignment.py $(sc_inputs)/mapped.sort_by_read.sam $(sc_inputs)/annotation.txt
 	$^ $(out_sc_pfx) --cpus 4
 
 

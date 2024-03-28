@@ -17,9 +17,11 @@ RUN conda install -y -n base python=3.10
 RUN conda env update -v -n base -f conda_env.yml
 
 # Executable scripts
-COPY bin/* /usr/local/bin
-RUN chmod +x /usr/local/bin/*.py /usr/local/bin/*.R
-ENV PATH "/usr/local/bin:$PATH"
+RUN mkdir -p /opt/laava
+RUN chmod 777 /opt/laava/
+COPY src/* /opt/laava/
+RUN chmod +x /opt/laava/*.py /opt/laava/*.R
+ENV PATH "/opt/laava:$PATH"
 
 WORKDIR /data/
 

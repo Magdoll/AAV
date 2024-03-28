@@ -1,6 +1,6 @@
 process make_all() {
     publishDir "$params.outdir", mode: "copy"
-    container = "ghcr.io/formbio/laava_nf:latest"
+    container = "ghcr.io/formbio/laava:latest"
 
     input:
     path mapped_reads_sam
