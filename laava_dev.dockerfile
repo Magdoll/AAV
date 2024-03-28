@@ -21,11 +21,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install directly into 'base' conda environment
-COPY laava.conda_env.yml ./conda_env.yml
+COPY laava_dev.conda_env.yml ./conda_env.yml
 RUN conda install -y -n base conda-libmamba-solver && conda config --set solver libmamba
 RUN conda install -y -n base python=3.10
 RUN conda env update -v -n base -f conda_env.yml
-RUN conda install -y -n base graphviz minimap2 nextflow pytest r-styler ruff
 
 WORKDIR /data/
 
