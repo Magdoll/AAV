@@ -1,5 +1,6 @@
 # Interactive environment with scripts and extra dependencies
 FROM --platform=linux/amd64 continuumio/miniconda3:23.10.0-1
+LABEL org.opencontainers.image.source https://github.com/formbio/AAV
 
 RUN apt-get update \
     && apt-get install -y \
