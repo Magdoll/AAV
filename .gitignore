@@ -1,9 +1,12 @@
 *.bai
+*.fai
 *.gz
 *.sam
+.DS_Store
 .nextflow.log*
 .nextflow/
 nextflow_logs/
+output/
 test/CBA-eGFP/*.bam
 test/CMV-GFP/*.bam
 test/build/
