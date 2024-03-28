@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { make_all } from './modules/laava'
+include { make_all } from './modules/local/laava'
 
 workflow {
     make_all(
