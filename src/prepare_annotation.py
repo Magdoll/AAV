@@ -101,7 +101,7 @@ def write_annotation_txt(out_fname, vector_row, other_rows):
                         f"{orow.source_type}"
                     )
                 continue
-            outf.write("NAME={seq_name};TYPE={source_type}\n".format(**orow._asdict()))
+            outf.write("NAME={seq_name};TYPE={source_type};\n".format(**orow._asdict()))
 
 
 if __name__ == "__main__":

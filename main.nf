@@ -1,12 +1,22 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { make_all } from './modules/local/laava'
+include { map_reads; make_report } from './modules/local/laava'
 
 workflow {
-    make_all(
-        Channel.fromPath(params.mapped_reads_sam),
-        Channel.fromPath(params.annotation_txt),
+    result = map_reads(
+        file(params.seq_reads).getSimpleName(),
+        Channel.fromPath(params.seq_reads),
+        Channel.fromPath(params.vector_fa),
+        params.helper_fa ? Channel.fromPath(params.helper_fa) : null,
+        params.repcap_fa ? Channel.fromPath(params.repcap_fa) : null,
+        params.host_fa ? Channel.fromPath(params.host_fa): null,
+    )
+    make_report(
+        result.sample_name,
         params.flipflop_name,
-        file(params.mapped_reads_sam).getSimpleName())
+        result.mapped_reads,
+        Channel.fromPath(params.vector_bed),
+        result.reference_names,
+    )
 }

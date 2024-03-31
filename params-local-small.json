@@ -1,5 +1,9 @@
 {
-  "annotation_txt": "test/CBA-eGFP/annotation.txt",
-  "mapped_reads_sam": "test/small/scaav-cba-egfp.bam",
+  "seq_reads": "test/small/scaav-cba-egfp.bam",
+  "vector_bed": "test/small/annotation.bed",
+  "vector_fa": "test/CBA-eGFP/scAAV_CBA_eGFP.fasta",
+  "helper_fa": "test/fasta/helper_stub.fa",
+  "repcap_fa": "test/fasta/repcap_stub.fa",
+  "host_fa": "test/fasta/host_stub.fa",
   "flipflop_name": "AAV2"
 }

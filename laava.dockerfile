@@ -6,6 +6,7 @@ RUN apt-get update \
     && apt-get install -y \
         apt-transport-https \
         less \
+        minimap2 \
         samtools \
         texlive-latex-extra \
         texlive-latex-recommended \

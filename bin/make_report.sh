@@ -1,16 +1,16 @@
 #!/bin/bash -ex
-mapped_reads_sam=$1
-annotation_txt=$2
-sample_name=$3
+sample_name=$1
+mapped_reads_sam=$2
+annotation_txt=$3
 flipflop_name=$4
 
-ls -Alh /usr/local/bin
+ls -Alh
 
 if [[ $mapped_reads_sam == *.bam ]]; then
     echo "Converting $mapped_reads_sam from BAM to SAM"
-    bam_fname="${mapped_reads_sam%%.bam}"
-    samtools view -b -o "$bam_fname" "$mapped_reads_sam"
-    mapped_reads_sam="$bam_fname"
+    sam_fname="${mapped_reads_sam%%.sam}"
+    samtools view -b -o "$sam_fname" "$mapped_reads_sam"
+    mapped_reads_sam="$sam_fname"
 else
     echo "Reads $mapped_reads_sam appear to be in SAM format"
 fi

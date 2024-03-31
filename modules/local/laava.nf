@@ -1,12 +1,39 @@
-process make_all() {
+process map_reads() {
+    publishDir "$params.outdir", mode: "copy"
+    //container = "quay.io/pacbio/pbmm2:1.13.1_build2"
+    //container = "staphb/minimap2"
+    container = "ghcr.io/formbio/laava:latest"
+
+    input:
+    val sample_name
+    path reads
+    path vector_fa
+    path helper_fa
+    path repcap_fa
+    path host_fa
+
+    output:
+    path("${sample_name}.sort_by_name.sam"), emit: mapped_reads
+    path("reference_names.tsv"), emit: reference_names
+    val "${sample_name}", emit: sample_name
+
+    script:
+    """
+    map_reads.sh ${sample_name} ${reads} ${vector_fa} ${helper_fa} ${repcap_fa} ${host_fa}
+    """
+}
+
+
+process make_report() {
     publishDir "$params.outdir", mode: "copy"
     container = "ghcr.io/formbio/laava:latest"
 
     input:
-    path mapped_reads_sam
-    path annotation_txt
-    val flipflop_name
     val sample_name
+    val flipflop_name
+    path mapped_reads
+    path vector_annotation
+    path reference_names
 
     output:
     // summarize alignment
@@ -27,6 +54,7 @@ process make_all() {
 
     script:
     """
-    make_all.sh ${mapped_reads_sam} ${annotation_txt} ${sample_name} ${flipflop_name}
+    prepare_annotation.py "${vector_annotation}" "${reference_names}" -o annotation.txt
+    make_report.sh "${sample_name}" "${mapped_reads}" annotation.txt "${flipflop_name}"
     """
 }
