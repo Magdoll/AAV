@@ -41,7 +41,7 @@ jobs:
             ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('laava.conda_env.yml') }}
       - uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: AAV.env
+          activate-environment: laava
           auto-activate-base: false
           auto-update-conda: true
           channel-priority: strict
