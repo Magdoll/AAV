@@ -6,14 +6,14 @@
 You can directly download/clone the repo to use the scripts directly. 
 
 ```
-$ git clone https://github.com/formbio/AAV.git
+$ git clone https://github.com/formbio/laava.git
 ```
 
 You can install the dependencies on your own or use one of the following options.
 
 ### Option 1: Conda
 
-The conda (or mamba) channels and dependencies are in the configuration file `AAV.conda_env.yml`. 
+The conda (or mamba) channels and dependencies are in the configuration file `laava.conda_env.yml`. 
 
 First, install conda via Miniconda or Anaconda. Then, for example, suppose you have [anaconda](https://docs.anaconda.com/anaconda/install/linux/) installed and the binary is in `$HOME/anaCogentPy37/bin`. To make the installed scripts available in your environment, you would add the binary to $PATH if it isn't there already:
 
@@ -21,35 +21,35 @@ First, install conda via Miniconda or Anaconda. Then, for example, suppose you h
 $ export PATH=$HOME/anaCogentPy37/bin:$PATH
 ```
 
-Next, create a new conda environment called `AAV.env` and install these dependencies from the YAML configuration file:
+Next, use the YAML configuration file to create a new conda environment called `laava` and install dependencies:
 
 ```
-$ conda env create -f AAV.conda_env.yml
+$ conda env create -f laava.conda_env.yml
 ```
 
 Finally, once installation completes, activate the new environment:
 
 ```
-$ source activate AAV.env
+$ source activate laava
 ```
 
-At this point the prompt should change to `(AAV.env) $` and the executable AAV scripts should be available in your PATH.
+At this point the prompt should change to `(laava) $` and the executable scripts should be available in your PATH.
 
 
 ### Option 2: Docker
 
 The `Dockerfile` in this repo installs the scripts and all their dependencies into a Docker container image that you can then use to run the scripts.
 
-To build the container image with the name `aavqc` (you can use another name if you prefer):
+To build the container image with the name `laava` (you can use another name if you prefer):
 
 ```
-docker build -t aavqc:latest -f Dockerfile .
+docker build -t laava:latest -f Dockerfile .
 ```
 
 To run the container in the current working directory:
 
 ```
-docker run -v $(pwd):$(pwd) -w $(pwd) -it aavqc:latest bash
+docker run -v $(pwd):$(pwd) -w $(pwd) -it laava:latest bash
 ```
 
 This opens a Bash shell with the scripts in the PATH, and the original working directory mounted in place.
