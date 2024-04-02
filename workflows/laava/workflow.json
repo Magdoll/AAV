@@ -11,30 +11,70 @@
     "PacBio"
   ],
   "inputs": {
-    "mapped_reads_bam": {
-      "title": "Mapped reads",
-      "description": "Long-read sequencing data, aligned to references.",
-      "help_text": "PacBio AAV sequencing read set, aligned to construct and packaging reference sequences, and sorted, in BAM or SAM format.",
-      "filetype": ".bam|.sam",
+    "seq_reads": {
+      "title": "Sequencing reads",
+      "description": "PacBio long-read sequencing data (BAM)",
+      "help_text": "PacBio AAV sequencing read set, as HiFi/CCS reads in unaligned BAM format. The PacBio instrument should have been run in AAV mode.",
+      "filetype": ".bam",
       "format": "file",
       "hidden": false,
       "required": true,
       "type": "string"
     },
-    "annotation_txt": {
-      "title": "Annotations",
-      "description": "Construct sequence annotations",
-      "help_text": "Annotated construct region coordinates including ITR, promotor and CDS regions",
-      "filetype": ".txt|.tsv",
+    "vector_bed": {
+      "title": "Vector annotation",
+      "description": "Vector sequence annotation (BED)",
+      "help_text": "Annotated vector region coordinates in 4-column BED format. Must include 1 region with the label 'vector'.",
+      "filetype": ".bed",
       "format": "file",
       "hidden": false,
       "required": true,
+      "type": "string"
+    },
+    "vector_fa": {
+      "title": "Vector sequence",
+      "description": "Vector plasmid reference sequence (FASTA)",
+      "help_text": "Reference sequence for the vector plasmid. The annotations apply to this sequence.",
+      "filetype": ".fa|.fasta|.dna|.fna",
+      "format": "file",
+      "hidden": false,
+      "required": true,
+      "type": "string"
+    },
+    "helper_fa": {
+      "title": "Helper sequence",
+      "description": "Helper plasmid reference sequence (FASTA)",
+      "help_text": "Reference sequence for the helper plasmid.",
+      "filetype": ".fa|.fasta|.dna|.fna",
+      "format": "file",
+      "hidden": false,
+      "required": false,
+      "type": "string"
+    },
+    "repcap_fa": {
+      "title": "RepCap sequence",
+      "description": "RepCap plasmid reference sequence (FASTA)",
+      "help_text": "Reference sequence for the repCap plasmid.",
+      "filetype": ".fa|.fasta|.dna|.fna",
+      "format": "file",
+      "hidden": false,
+      "required": false,
+      "type": "string"
+    },
+    "host_fa": {
+      "title": "Host sequences",
+      "description": "Host genome reference sequence (FASTA)",
+      "help_text": "Reference sequence for the host genome.",
+      "filetype": ".fa|.fasta|.dna|.fna",
+      "format": "file",
+      "hidden": false,
+      "required": false,
       "type": "string"
     },
     "flipflop_name": {
       "title": "AAV Serotype",
-      "description": "Serotype name for ITR flip/flop analysis, e.g. 'AAV2', or leave blank to skip",
-      "help_text": "Serotype name for ITR flip/flop analysis, e.g. 'AAV2', or leave blank to skip",
+      "description": "AAV serotype name for flip/flop analysis",
+      "help_text": "Serotype name for ITR flip/flop analysis, e.g. 'AAV2'. Leave blank to skip flip/flop analysis.",
       "format": "text",
       "hidden": false,
       "required": false,
@@ -51,8 +91,13 @@
         "help_text": "All input files for analysis",
         "id": "workflowinputs",
         "fields": [
-          "mapped_reads_bam",
-          "annotation_txt"
+          "seq_reads",
+          "vector_bed",
+          "vector_fa",
+          "helper_fa",
+          "repcap_fa",
+          "host_fa",
+          "flipflop_name"
         ]
       }
     ]
