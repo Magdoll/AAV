@@ -336,27 +336,27 @@ if (file.exists(params$flipflop_summary)) {
 }
 ```
 
-
-## Flip/flop configurations, scAAV only
-
-```{r flipflopsc, message=FALSE, warning=FALSE}
-if (exists("scff") && (nrow(scff) > 1)) {
-  flextable(scff) %>%
-    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
-} else {
-  cat("No scAAV flip/flop analysis results available to display.")
+```{r flipflopsc, message=FALSE, warning=FALSE, results='asis'}
+if (exists("scff")) {
+  cat("## Flip/flop configurations, scAAV only\n\n")
+  if (nrow(scff) > 1) {
+    flextable(scff) %>%
+      set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
+  } else {
+    cat("\nNo scAAV flip/flop analysis results available to display.")
+  }
 }
 ```
 
-
-## Flip/flop configurations, ssAAV only
-
-```{r flipflopss, message=FALSE, warning=FALSE}
-if (exists("ssff") && (nrow(ssff) > 1)) {
-  flextable(ssff) %>%
-    set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
-} else {
-  cat("No ssAAV flip/flop analysis results available to display.")
+```{r flipflopss, message=FALSE, warning=FALSE, results='asis'}
+if (exists("ssff")) {
+  cat("## Flip/flop configurations, ssAAV only\n\n")
+  if (nrow(ssff) > 1) {
+    flextable(ssff) %>%
+      set_header_labels(values=c("type", "subtype", "leftITR", "rightITR", "count"))
+  } else {
+    cat("No ssAAV flip/flop analysis results available to display.")
+  }
 }
 ```
 
