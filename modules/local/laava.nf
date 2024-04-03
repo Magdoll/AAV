@@ -1,8 +1,9 @@
 process map_reads() {
-    publishDir "$params.outdir", mode: "copy"
+    publishDir "$params.output", mode: "copy"
     //container = "quay.io/pacbio/pbmm2:1.13.1_build2"
     //container = "staphb/minimap2"
     container = "ghcr.io/formbio/laava:latest"
+    cpus = 4
 
     input:
     val sample_name
@@ -25,8 +26,9 @@ process map_reads() {
 
 
 process make_report() {
-    publishDir "$params.outdir", mode: "copy"
+    publishDir "$params.output", mode: "copy"
     container = "ghcr.io/formbio/laava:latest"
+    cpus = 4
 
     input:
     val sample_name

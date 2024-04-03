@@ -502,5 +502,5 @@ according to the definitions above.
 
 
 ```{r saverdata, message=FALSE, warning=FALSE}
-#save.image(file = paste0(params$input_prefix, ".Rdata"))
+save.image(file = paste0(params$input_prefix, ".Rdata"))
 ```
