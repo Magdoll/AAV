@@ -41,20 +41,20 @@
       "required": true,
       "type": "string"
     },
-    "helper_fa": {
-      "title": "Helper sequence",
-      "description": "Helper plasmid reference sequence (FASTA)",
-      "help_text": "Reference sequence for the helper plasmid.",
+    "repcap_fa": {
+      "title": "RepCap sequence",
+      "description": "RepCap plasmid reference sequence (FASTA)",
+      "help_text": "Reference sequence for the RepCap plasmid.",
       "filetype": ".fa|.fasta|.dna|.fna",
       "format": "file",
       "hidden": false,
       "required": false,
       "type": "string"
     },
-    "repcap_fa": {
-      "title": "RepCap sequence",
-      "description": "RepCap plasmid reference sequence (FASTA)",
-      "help_text": "Reference sequence for the repCap plasmid.",
+    "helper_fa": {
+      "title": "Helper and other sequences",
+      "description": "Helper plasmid and other reference sequences (FASTA)",
+      "help_text": "Reference sequences for the helper plasmid and other sequences of interest, such as Lambda, as a FASTA file with one or more records.",
       "filetype": ".fa|.fasta|.dna|.fna",
       "format": "file",
       "hidden": false,
@@ -94,8 +94,8 @@
           "seq_reads",
           "vector_bed",
           "vector_fa",
-          "helper_fa",
           "repcap_fa",
+          "helper_fa",
           "host_fa",
           "flipflop_name"
         ]

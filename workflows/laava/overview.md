@@ -11,7 +11,7 @@ produces a report of the alignment statistics in HTML and PDF formats.
 graph TD
 
 bam(Aligned BAM) --> counts(Read counts)
-anno(Annotation) --> counts
+anno(Annotation BED) --> counts
 counts --> sumtables(Summary tables)
 counts --> sumreport(PDF/HTML Report)
 ```
