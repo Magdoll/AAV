@@ -261,7 +261,7 @@ sopt3 <- df.read.vector2 %>%
         arrange(factor(assigned_type, levels = valid_types),
                 factor(assigned_subtype, levels = valid_subtypes))
 
-flextable(sopt3[1:20,]) %>%
+flextable(sopt3[1:min(nrow(sopt3), 20),]) %>%
       set_header_labels(values=c("Assigned Type", "Assigned Subtype", "Count",
                                  "Freq. in AAV (%)", "Total Freq. (%)"))
 ```
@@ -421,7 +421,6 @@ p1.map_len
 # Produce stats for repcap (if exists)
 
 x.read.repcap <- filter(x.all.read, assigned_type=='repcap')
-#x.err.repcap <- filter(x.all.err, read_id %in% x.read.repcap$read_id)
 x.summary.repcap <- filter(x.all.summary, read_id %in% x.read.repcap$read_id)
 
 # Only render this subsection if at enough reads mapped to repcap
