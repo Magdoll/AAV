@@ -14,9 +14,11 @@ clean:
 	rm -vf build/*
 	rm -vf $(out_small_pfx)_AAV_report.html $(out_small_pfx)_AAV_report.pdf
 
-
-$(out_small_pfx)_AAV_report.html: ../src/create_report.R ../src/report.Rmd $(out_small_pfx).flipflop_assignments.txt
+$(out_small_pfx)_AAV_report.html: ../src/create_report.R ../src/report.Rmd $(out_small_pfx).annotation.txt $(out_small_pfx).flipflop_assignments.txt
 	$< $(out_small_pfx) $(small_inputs)/annotation.txt pAV-CMV-GFP $(out_small_pfx).flipflop_assignments.txt
+
+$(out_small_pfx).annotation.txt: ../src/prepare_annotation.py $(small_inputs)/annotation.bed $(small_inputs)/reference_names.tsv
+	$^ -o $@
 
 $(out_small_pfx).flipflop_assignments.txt: ../src/get_flipflop_config.py $(out_small_pfx).tagged.bam $(out_small_pfx).per_read.csv
 	$^ -o $(out_small_pfx)
