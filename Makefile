@@ -2,9 +2,9 @@
 all: laava laava_dev
 
 clean:
-	rm -r workflow-outputs/*
-	rm .nextflow.log*
-	rm test/build/*
+	rm -fv .nextflow.log*
+	rm -fv test/build/*
+	rm -rf workflow-outputs/*
 
 laava laava_dev: %: %.dockerfile laava.conda_env.yml
 	docker build -t ghcr.io/formbio/$@:latest -f $< .
