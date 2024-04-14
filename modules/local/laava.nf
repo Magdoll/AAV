@@ -1,8 +1,5 @@
 process map_reads() {
     publishDir "$params.output", mode: "copy"
-    // container = "ghcr.io/formbio/laava:latest"
-    container = "ghcr.io/formbio/laava@sha256:ad2e6aa7249a712d28027617e3075a492e9a81a0c49dc50cd83d209a4ed98df8"
-    cpus = 4
 
     input:
     val sample_name
@@ -26,9 +23,6 @@ process map_reads() {
 
 process make_report() {
     publishDir "$params.output", mode: "copy"
-    // container = "ghcr.io/formbio/laava:latest"
-    container = "ghcr.io/formbio/laava@sha256:ad2e6aa7249a712d28027617e3075a492e9a81a0c49dc50cd83d209a4ed98df8"
-    cpus = 4
 
     input:
     val sample_name
