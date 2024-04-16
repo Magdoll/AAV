@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Summarize the AAV alignment."""
+
 import gzip
 import os
 import re
@@ -58,8 +60,8 @@ name_map_scAAV = {
     "vector+backbone": "vector+backbone",
 }
 
-annot_rex = re.compile("NAME=(\S+);TYPE=([a-zA-Z]+);(REGION=\d+\-\d+){0,1}")
-ccs_rex = re.compile("\S+\/\d+\/ccs(\/fwd|\/rev)?")
+annot_rex = re.compile(r"NAME=(\S+);TYPE=([a-zA-Z]+);(REGION=\d+\-\d+){0,1}")
+ccs_rex = re.compile(r"\S+\/\d+\/ccs(\/fwd|\/rev)?")
 ANNOT_TYPE_PRIORITIES = {"vector": 1, "repcap": 2, "helper": 3, "lambda": 4, "host": 5}
 
 MAX_DIFF_W_REF = 100
@@ -120,7 +122,7 @@ def iter_cigar(rec):
             for i in range(_count):
                 yield x, _count
         else:
-            raise Exception("Unexpected cigar {0}{1} seen! Abort!".format(_count, x))
+            raise RuntimeError("Unexpected cigar {0}{1} seen! Abort!".format(_count, x))
 
 
 def iter_cigar_w_aligned_pair(rec, writer):
@@ -168,12 +170,10 @@ def read_annotation_file(annot_filename):
         stuff = line.strip()
         m = annot_rex.match(stuff)
         if m is None:
-            raise Exception(
-                "{0} is not a valid annotation line! Should follow format `NAME=xxxx;TYPE=xxxx;REGION=xxxx;`. Abort!".format(
-                    stuff
-                )
+            raise RuntimeError(
+                f"{stuff} is not a valid annotation line! Should follow format "
+                "`NAME=xxxx;TYPE=xxxx;REGION=xxxx;`. Abort!"
             )
-            sys.exit(-1)
 
         _name = m.group(1)
         _type = m.group(2)
@@ -183,19 +183,12 @@ def read_annotation_file(annot_filename):
             else tuple(map(int, m.group(3).split("=")[1].split("-")))
         )
         if _type in d:
-            raise Exception(
-                "Annotation file has multiple {0} types. Abort!".format(_type)
+            raise RuntimeError(f"Annotation file has multiple {_type} types. Abort!")
+        if _type not in ANNOT_TYPE_PRIORITIES:
+            raise RuntimeError(
+                f"{_type} is not a valid type (host, repcap, vector, helper). Abort!"
             )
-            sys.exit(-1)
-        elif _type not in ANNOT_TYPE_PRIORITIES:
-            raise Exception(
-                "{0} is not a valid type (host, repcap, vector, helper). Abort!".format(
-                    _type
-                )
-            )
-            sys.exit(-1)
-        else:
-            d[_name] = {"type": _type, "region": _region}
+        d[_name] = {"type": _type, "region": _region}
     return d
 
 

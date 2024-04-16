@@ -41,7 +41,7 @@ def read_annotation_bed(fname):
     Check that the input contains exactly one 'vector' row. Ignore all other BED rows.
     """
     out_row = None
-    with open(args.annotation_bed) as infile:
+    with open(fname) as infile:
         for line in infile:
             # Require BED4 or more
             seq_name, start0, end, label = line.rstrip().split("\t")[:4]
@@ -61,7 +61,7 @@ def read_annotation_bed(fname):
 
 def read_reference_names(fname):
     """Read a 2-column TSV of reference sequence names and source types."""
-    with open(args.reference_names) as infile:
+    with open(fname) as infile:
         for line in infile:
             seq_name, source_type = line.split()
             if source_type not in ANNOT_TYPES:
@@ -118,8 +118,8 @@ if __name__ == "__main__":
     args = AP.parse_args()
 
     try:
-        vector_row = read_annotation_bed(args.annotation_bed)
-        other_rows = read_reference_names(args.reference_names)
-        write_annotation_txt(args.output, vector_row, other_rows)
+        vec_row = read_annotation_bed(args.annotation_bed)
+        otr_rows = read_reference_names(args.reference_names)
+        write_annotation_txt(args.output, vec_row, otr_rows)
     except RuntimeError as exc:
         sys.exit(str(exc))

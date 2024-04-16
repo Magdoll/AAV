@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Get ITR flip flop configurations.
+
+Must have already run `summarize_AAV_alignment.py` to get a .tagged.BAM file!
+"""
+
 import sys
 from csv import DictReader
 
@@ -6,22 +11,13 @@ import parasail
 import pysam
 from Bio import SeqIO
 
-"""
-Get ITR flip flop configurations
-Must have already run `summarize_AAV_alignment.py` to get a .tagged.BAM file!
-
-Required:
-"""
 
 SW_SCORE_MATRIX = parasail.matrix_create("ACGT", 2, -5)
 
-SEQ_LEFT_FLIP = "ttggccactccctctctgcgcgctcgctcgctcactgaggccgggcgaccaaaggtcgcccgacgcccgggctttgcccgggcggcctcagtgagcgagcgagcgcgcagagagggagtggccaactccatcactaggggttcct".upper()
+SEQ_LEFT_FLIP = "TTGGCCACTCCCTCTCTGCGCGCTCGCTCGCTCACTGAGGCCGGGCGACCAAAGGTCGCCCGACGCCCGGGCTTTGCCCGGGCGGCCTCAGTGAGCGAGCGAGCGCGCAGAGAGGGAGTGGCCAACTCCATCACTAGGGGTTCCT"
 SEQ_LEFT_FLOP = "TTGGCCACTCCCTCTCTGCGCGCTCGCTCGCTCACTGAGGCCGCCCGGGCAAAGCCCGGGCGTCGGGCGACCTTTGGTCGCCCGGCCTCAGTGAGCGAGCGAGCGCGCAGAGAGGGAGTGGCCAACTCCATCACTAGGGGTTCCT"
 SEQ_RIGHT_FLIP = "AGGAACCCCTAGTGATGGAGTTGGCCACTCCCTCTCTGCGCGCTCGCTCGCTCACTGAGGCCGCCCGGGCAAAGCCCGGGCGTCGGGCGACCTTTGGTCGCCCGGCCTCAGTGAGCGAGCGAGCGCGCAGAGAGGGAGTGGCCAA"
 SEQ_RIGHT_FLOP = "AGGAACCCCTAGTGATGGAGTTGGCCACTCCCTCTCTGCGCGCTCGCTCGCTCACTGAGGCCGGGCGACCAAAGGTCGCCCGACGCCCGGGCTTTGCCCGGGCGGCCTCAGTGAGCGAGCGAGCGCGCAGAGAGGGAGTGGCCAA"
-
-# POS_LEFT_FLIP=0 # start position
-# POS_RIGHT_FLIP=4603 # start position
 
 
 def read_flip_flop_fasta(fasta_filename):
@@ -49,9 +45,9 @@ def read_flip_flop_fasta(fasta_filename):
             flag += 0b0001
         else:
             print(
-                "WARNING: Sequence IDs must be SEQ_LEFT_FLIP|SEQ_LEFT_FLOP|SEQ_RIGHT_FLIP|SEQ_RIGHT_FLOP. Is {0} instead. Ignoring!".format(
-                    r.id
-                )
+                "WARNING: Sequence IDs must be "
+                "SEQ_LEFT_FLIP|SEQ_LEFT_FLOP|SEQ_RIGHT_FLIP|SEQ_RIGHT_FLOP. "
+                f"Is {r.id} instead. Ignoring!"
             )
 
     # check that all 4 needed sequence IDs are seen
@@ -124,8 +120,9 @@ def identify_flip_flop(r):
 
 def main(per_read_csv, tagged_bam, output_prefix):
     read_info = {}
-    for r in DictReader(open(per_read_csv), delimiter="\t"):
-        read_info[r["read_id"]] = r
+    with open(per_read_csv) as in_csv:
+        for r in DictReader(in_csv, delimiter="\t"):
+            read_info[r["read_id"]] = r
 
     fout = open(output_prefix + ".flipflop_assignments.txt", "w")
     fout.write("name\ttype\tsubtype\tstart\tend\tleftITR\trightITR\n")
@@ -189,9 +186,9 @@ def main(per_read_csv, tagged_bam, output_prefix):
     writer3.close()
     fout.close()
 
-    print("Output summmary: {0}".format(fout.name))
+    print("Output summmary:", fout.name)
     print(
-        f"Indidual BAM files written: {output_prefix}.vector- full,leftpartial,rightpartial -flipflop.bam"
+        f"Individual BAM files written: {output_prefix}.vector- full,leftpartial,rightpartial -flipflop.bam"
     )
 
 
