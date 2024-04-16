@@ -37,8 +37,11 @@ process make_report() {
     path("${sample_name}.summary.csv"), emit: summary_csv
     path("${sample_name}.nonmatch_stat.csv.gz"), emit: nonmatch_stat_csvgz
     path("${sample_name}.tagged.bam"), emit: tagged_bam
+    path("${sample_name}.*.tagged.sorted.bam"), emit: subtype_bams
+    path("${sample_name}.*.tagged.sorted.bam.bai"), emit: subtype_bais
     // flip-flop
     path("${sample_name}.flipflop_assignments.txt"), emit: flipflop_assignments_txt, optional: true
+    path("${sample_name}.*-flipflop.bam"), emit: flipflop_bams
     // report
     path("${sample_name}.alignments.tsv"), emit: alignments_tsv
     path("${sample_name}.readsummary.tsv"), emit: readsummary_tsv
