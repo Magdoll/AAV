@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import gzip
 import os
-import pdb
-import random
 import re
-import shutil
 import subprocess
 import sys
-from collections import defaultdict
 from csv import DictReader, DictWriter
 from multiprocessing import Process
+# import pdb
 
 import pysam
 
@@ -222,8 +219,6 @@ def is_on_target(r, valid_start, valid_end):
 
     diff_start = r.reference_start - valid_start
     diff_end = valid_end - r.reference_end
-    # this is what a true "full length" (without large deletions) size would be
-    valid_len = valid_end - valid_start
 
     if abs(diff_start) <= MAX_DIFF_W_REF:  # complete 5' start/left
         if abs(diff_end) <= MAX_DIFF_W_REF:  # complete 3' end/right
@@ -287,8 +282,6 @@ def process_alignment_bam(
     writer1.writeheader()
     writer2.writeheader()
     writer3.writeheader()
-
-    debug_count = 0
 
     reader = pysam.AlignmentFile(sorted_sam_filename, check_sq=False)
     bam_writer = pysam.AlignmentFile(
@@ -610,11 +603,6 @@ def run_processing_parallel(sorted_sam_filename, d, output_prefix, num_chunks=1)
     # copy the first chunk over
     o = output_prefix + ".1"
 
-    # shutil.copy(o + '.nonmatch_stat.csv', output_prefix + '.nonmatch_stat.csv')
-    # shutil.copy(o + '.per_read.csv', output_prefix + '.per_read.csv')
-    # shutil.copy(o + '.summary.csv', output_prefix + '.summary.csv')
-    # shutil.copy(o + '.tagged.bam', output_prefix + '.tagged.bam')
-
     f1 = gzip.open(output_prefix + ".nonmatch_stat.csv.gz", "wb")
     f2 = open(output_prefix + ".per_read.csv", "w")
     f3 = open(output_prefix + ".summary.csv", "w")
@@ -684,9 +672,6 @@ if __name__ == "__main__":
         "--cpus", type=int, default=1, help="Number of CPUs (default: 1)"
     )
     parser.add_argument("--debug", action="store_true", default=False)
-    # parser.add_argument("-f", "--random_frac", default=1., type=float, help="default: off. Random fraction of alignments to subsample.")
-    # parser.add_argument("-m", "--max_reads", type=int, default=None, \
-    #                    help="default: off. Maximum number of records to process. Can use in conjunction with --random_frac")
 
     args = parser.parse_args()
 
@@ -763,7 +748,7 @@ if __name__ == "__main__":
     # samtools sort/index the above files
     try:
         subprocess.check_call("samtools --help > /dev/null", shell=True)
-    except:
+    except Exception:
         print("WARNING: unable to call samtools to sort the output BAM files. End.")
         sys.exit(-1)
 
