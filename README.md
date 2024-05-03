@@ -1,10 +1,13 @@
 # AAV
 
-Last Updated: 11/20/2023
+Last Updated: 05/03/2024
 
 ## Disclaimer
 
-This is not an official PacBio GitHub repo. The scripts here are being actively developed. Use at your own risk.
+**THIS REPOSITORY IS OBSOLETE AND WILL NO LONGER BE MAINTAINED**
+
+This was a personal repository for analyzing PacBio long-read AAV sequencing data. The open source code is now being maintained and developed at [FormBio's LAAVA repo](https://github.com/formbio/laava). Please visit LAAVA to get the latest code base! Thanks!
+
 
 
 ## Pre-requisites
